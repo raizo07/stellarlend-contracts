@@ -34,9 +34,7 @@ use views::{
     get_user_position as view_user_position, UserPositionSummary,
 };
 
-use withdraw::{
-    withdraw as withdraw_logic,
-};
+use withdraw::withdraw as withdraw_logic;
 
 mod data_store;
 use stellarlend_common::upgrade;
