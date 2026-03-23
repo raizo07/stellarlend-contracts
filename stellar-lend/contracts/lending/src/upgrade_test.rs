@@ -1,4 +1,4 @@
-use soroban_sdk::{testutils::Address as _, Address, BytesN, Env};
+use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, Error, InvokeError};
 
 use crate::{LendingContract, LendingContractClient, UpgradeError, UpgradeStage};
 
@@ -24,6 +24,10 @@ fn assert_contract_error<T, E>(
         Ok(Err(_)) => {}
         _ => panic!("expected contract error"),
     }
+}
+
+fn assert_failed<T>(result: Result<T, Result<Error, InvokeError>>) {
+    assert!(result.is_err(), "expected operation to fail");
 }
 
 /// Verifies initialization and baseline status fields.

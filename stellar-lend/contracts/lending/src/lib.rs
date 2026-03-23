@@ -1,7 +1,6 @@
 #![no_std]
 #![allow(deprecated)]
 #![allow(clippy::absurd_extreme_comparisons)]
-use soroban_sdk::{contract, contractimpl, Address, Bytes, Env, Val, Vec};
 use soroban_sdk::{contract, contractimpl, Address, Bytes, BytesN, Env, Val, Vec};
 
 mod borrow;
@@ -43,7 +42,10 @@ use views::{
     get_user_position as view_user_position, UserPositionSummary,
 };
 
-use withdraw::withdraw as withdraw_logic;
+use withdraw::{
+    initialize_withdraw_settings as initialize_withdraw_logic,
+    set_withdraw_paused as set_withdraw_paused_logic, withdraw as withdraw_logic, WithdrawError,
+};
 
 mod data_store;
 use stellarlend_common::upgrade;
@@ -69,8 +71,9 @@ mod data_store_test;
 #[cfg(test)]
 mod math_safety_test;
 #[cfg(test)]
-mod upgrade_migration_safety_test;
 mod race_tests;
+#[cfg(test)]
+mod upgrade_migration_safety_test;
 #[cfg(test)]
 mod upgrade_test;
 #[cfg(test)]
@@ -242,8 +245,10 @@ impl LendingContract {
     /// [CPU Instructions, Memory Bytes]
     pub fn get_performance_stats(env: Env) -> Vec<u64> {
         let mut stats = Vec::new(&env);
-        stats.push_back(env.budget().cpu_instruction_count());
-        stats.push_back(env.budget().memory_bytes_count());
+        // Runtime budget counters are only available in testutils.
+        // Keep a stable ABI by returning placeholder values in production builds.
+        stats.push_back(0);
+        stats.push_back(0);
         stats
     }
 
@@ -473,6 +478,9 @@ impl LendingContract {
     // ───────────────────────────────────────────────────
 
     pub fn data_store_init(env: Env, admin: Address) {
+        if env.storage().persistent().has(&data_store::StoreKey::Admin) {
+            return;
+        }
         data_store::DataStore::init(env, admin);
     }
 
@@ -506,7 +514,7 @@ impl LendingContract {
         new_version: u32,
         memo: soroban_sdk::String,
     ) {
-        data_store::DataStore::data_migrate_bump_version(env, caller, new_version, memo);
+        data_store::DataStore::data_migrate_bump_version(env, caller, new_version, Some(memo));
     }
 
     pub fn data_schema_version(env: Env) -> u32 {
@@ -520,14 +528,6 @@ impl LendingContract {
     pub fn data_key_exists(env: Env, key: soroban_sdk::String) -> bool {
         data_store::DataStore::key_exists(env, key)
     }
-
-    /// Initialize borrow settings (admin only)
-    pub fn initialize_borrow_settings(
-        env: Env,
-        debt_ceiling: i128,
-        min_borrow_amount: i128,
-    ) -> Result<(), BorrowError> {
-        initialize_borrow_logic(&env, debt_ceiling, min_borrow_amount)
 }
 
 fn ensure_admin(env: &Env, admin: &Address) -> Result<(), BorrowError> {

@@ -25,12 +25,6 @@ const STRESS_USER_COUNT: u32 = 150;
 /// Number of positions per user for multi-position tests
 const POSITIONS_PER_USER: u32 = 10;
 
-/// Near-boundary entry count for DataStore tests (close to MAX_ENTRIES)
-const NEAR_MAX_ENTRIES: u32 = 950;
-
-/// Small increment for boundary testing
-const BOUNDARY_INCREMENT: u32 = 51;
-
 // ═══════════════════════════════════════════════════════
 // Helper Functions
 // ═══════════════════════════════════════════════════════
@@ -75,9 +69,9 @@ fn create_user_borrow_positions(
 
             client.borrow(
                 &user,
-                &asset,
+                asset,
                 &borrow_amount,
-                &collateral_asset,
+                collateral_asset,
                 &collateral_amount,
             );
         }
@@ -95,7 +89,7 @@ fn create_user_deposit_positions(
     for (i, user) in users.iter().enumerate() {
         for j in 0..positions_per_user {
             let deposit_amount = 5_000 + (i as i128 * 500) + (j as i128 * 50);
-            client.deposit(&user, &asset, &deposit_amount);
+            client.deposit(&user, asset, &deposit_amount);
         }
     }
 }

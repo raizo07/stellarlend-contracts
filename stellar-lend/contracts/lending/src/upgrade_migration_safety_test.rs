@@ -7,10 +7,10 @@
 // - Multi-step upgrade paths
 // - Concurrent state modifications during upgrade proposals
 
-use soroban_sdk::{
-    testutils::{Address as _, Ledger},
-    Address, BytesN, Env, String as SorobanString,
-};
+extern crate alloc;
+use alloc::{format, vec::Vec};
+
+use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, String as SorobanString};
 
 use crate::{LendingContract, LendingContractClient, UpgradeStage};
 
