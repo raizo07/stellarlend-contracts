@@ -49,11 +49,11 @@ pub struct UpgradeStatus {
     pub target_version: u32,
 }
 
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
 // The `Up` prefix is intentional: it namespaces these storage keys to prevent
 // collisions with other contracts sharing the same Soroban persistent storage.
 #[allow(clippy::enum_variant_names)]
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
 enum UpgradeKey {
     UpAdmin,
     UpApprovers,
@@ -63,6 +63,7 @@ enum UpgradeKey {
     UpCurrVersion,
     UpProposal(u64),
 }
+
 
 pub struct UpgradeManager;
 
