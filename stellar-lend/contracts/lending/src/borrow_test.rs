@@ -213,7 +213,6 @@ fn test_coverage_boost_lib_refined() {
     let env = Env::default();
     env.mock_all_auths();
     let (client, admin, user, asset, _) = setup_test(&env);
-    let other_user = Address::generate(&env);
 
     // 1. Admin Setters
     client.set_oracle(&admin, &asset);
