@@ -276,7 +276,6 @@ fn test_coverage_extremes() {
     client.deposit_collateral(&user, &asset, &1000);
     client.data_store_init(&admin);
     // Use data_save to inject a massive debt directly into storage to bypass borrow checks
-    let massive_debt = Bytes::from_array(&env, &[0xFF; 16]); // i128::MAX approx
     client.data_grant_writer(&admin, &admin);
     // The key for user debt in borrow module is BorrowDataKey::BorrowUserDebt(user)
     // We'd need to know the exact serialization.
