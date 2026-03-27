@@ -30,6 +30,8 @@ cargo test
 
 ## Documentation
 
+See [Interest Numeric Assumptions](../../docs/INTEREST_NUMERIC_ASSUMPTIONS.md) for the shared numeric bounds, checked-arithmetic assumptions, and long-horizon accrual notes behind the protocol's interest calculations.
+
 See [borrow.md](./borrow.md), [pause.md](./pause.md), and [emergency_shutdown.md](./emergency_shutdown.md) for comprehensive documentation including:
 
 - Function signatures and parameters
