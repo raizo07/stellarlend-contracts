@@ -22,3 +22,11 @@ This contract exposes the core API for StellarLend, including lending/borrowing,
 
 Refer to `src/lib.rs` for detailed types and events.
 
+## Security Notes
+
+- **Trust boundaries**: admin and multisig/guardian governance paths control risk, pause, oracle, bridge, and recovery configuration.
+- **Authorization**: state-mutating privileged entrypoints require authenticated caller checks in `admin`, `governance`, and `risk_management` paths.
+- **Token transfer flows**: core asset movement is delegated to `deposit`, `withdraw`, `borrow`, `repay`, and `liquidate`, which perform value/amount validation and rely on Soroban token client auth/allowance checks.
+- **Reentrancy**: transfer-heavy modules use dedicated guards (`reentrancy` module) and defensive sequencing around state updates and external calls.
+- **Arithmetic and bounds**: protocol math uses checked operations in risk, analytics, and accounting code paths; parameter setters enforce explicit ranges.
+
