@@ -376,9 +376,9 @@ impl CacheService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use uuid::Uuid;
-    use chrono::{Utc, DateTime};
+    use chrono::{DateTime, Utc};
     use serde_json::json;
+    use uuid::Uuid;
 
     #[test]
     fn test_event_key_generation() {
