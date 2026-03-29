@@ -492,7 +492,7 @@ fn test_accrue_reserve_rounding() {
 
 #[test]
 fn test_set_treasury_address_by_admin() {
-    let (env, contract_id, admin, user, treasury) = setup_test_env();
+    let (env, contract_id, admin, _user, treasury) = setup_test_env();
 
     // Admin sets treasury address
     let result = test_set_treasury_address(&env, &contract_id, admin, treasury.clone());
@@ -566,7 +566,7 @@ fn test_withdraw_reserve_funds_success() {
     test_accrue_reserve(&env, &contract_id, asset.clone(), 10000).unwrap(); // Accrues 1000 to reserves
 
     // Withdraw 500 to treasury
-    let result = test_withdraw_reserve_funds(&env, &contract_id, admin, asset.clone(), 500);
+    let _result = test_withdraw_reserve_funds(&env, &contract_id, admin, asset.clone(), 500);
 
     // Verify reserve balance is reduced
     let balance = test_get_reserve_balance(&env, &contract_id, asset);
@@ -730,7 +730,7 @@ fn test_withdraw_reserve_from_zero_balance() {
 /// 3. Lender amounts are calculated correctly at each reserve factor
 /// 4. Total interest always equals reserve_amount + lender_amount
 /// 5. All calculations use checked arithmetic to prevent overflow
-
+///
 /// Structure to track interest distribution at different points in time
 #[derive(Debug, Clone)]
 struct InterestDistribution {
@@ -1193,7 +1193,7 @@ fn test_multiple_factor_changes_preserves_distribution_integrity() {
     );
 
     // Final verification
-    assert_eq!(expected_reserve_balance, 1000 + 2000 + 0 + 2000 + 1000);
+    assert_eq!(expected_reserve_balance, (1000 + 2000) + 2000 + 1000);
     assert_eq!(expected_reserve_balance, 6000);
 
     let total_distributed = r1 + l1 + r2 + l2 + r3 + l3 + r4 + l4 + r5 + l5;
@@ -1641,10 +1641,10 @@ fn test_reserve_factor_change_does_not_affect_existing_balance() {
 
 #[test]
 fn test_error_unauthorized_admin_operations() {
-    //! Tests that ReserveError::Unauthorized is returned for non-admin operations
-    //!
-    //! ## Security Invariant
-    //! All reserve configuration and withdrawal operations require admin authorization
+    // Tests that ReserveError::Unauthorized is returned for non-admin operations
+    //
+    // ## Security Invariant
+    // All reserve configuration and withdrawal operations require admin authorization
 
     let (env, contract_id, _admin, user, _treasury) = setup_test_env();
     let asset = Some(Address::generate(&env));
@@ -1806,7 +1806,7 @@ fn test_all_error_codes_documented() {
 /// - All arithmetic: Uses checked_mul, checked_div, checked_add, checked_sub
 #[test]
 fn test_security_trust_boundaries() {
-    //! Validates all security trust boundaries are enforced
+    // Validates all security trust boundaries are enforced
 
     let (env, contract_id, admin, _user, treasury) = setup_test_env();
     let asset = Some(Address::generate(&env));

@@ -100,7 +100,7 @@ fn test_add_amm_protocol() {
 
     let contract = create_amm_contract(&env);
     let admin = Address::generate(&env);
-    let protocol_addr = Address::generate(&env);
+    let _protocol_addr = Address::generate(&env);
 
     // Initialize first
     contract.initialize_amm_settings(&admin, &100, &1000, &10000);
@@ -267,7 +267,7 @@ fn test_swap_failure_paused() {
     let contract = create_amm_contract(&env);
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
-    let protocol_addr = Address::generate(&env);
+    let _protocol_addr = Address::generate(&env);
 
     contract.initialize_amm_settings(&admin, &100, &1000, &10000);
     let mut settings = contract.get_amm_settings().unwrap();
