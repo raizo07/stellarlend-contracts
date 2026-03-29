@@ -6,11 +6,11 @@
 #![cfg(test)]
 
 use soroban_sdk::{Address, Env};
-use crate::governance::*;
-use crate::recovery::*;
-use crate::storage::GovernanceDataKey;
-use crate::errors::GovernanceError;
-use crate::types::{GuardianConfig, RecoveryRequest};
+use stellarlend_hello_world::governance::*;
+use stellarlend_hello_world::recovery::*;
+use stellarlend_hello_world::storage::GovernanceDataKey;
+use stellarlend_hello_world::errors::GovernanceError;
+use stellarlend_hello_world::types::GuardianConfig;
 
 #[test]
 fn test_guardian_threshold_change_during_recovery_fails() {
