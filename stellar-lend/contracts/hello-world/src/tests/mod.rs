@@ -1,6 +1,7 @@
 pub mod config_snapshot_test;
 pub mod config_test;
 pub mod governance_test;
+pub mod guardian_threshold_safety_test;
 pub mod oracle_test;
 pub mod withdraw_test;
 
