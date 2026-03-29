@@ -60,7 +60,7 @@ fn setup_test() -> (Env, Address, HelloContractClient<'static>, Address, Address
     let user = Address::generate(&env);
     let contract_id = env.register(HelloContract, ());
     let client = HelloContractClient::new(&env, &contract_id);
-    client.initialize(&admin).unwrap();
+    client.initialize(&admin);
 
     let malicious_token_id = env.register(MaliciousToken, ());
 
@@ -118,10 +118,11 @@ fn reentrancy_guard_rejects_nested_entry_and_unlocks_after_drop() {
         let guard = ReentrancyGuard::new(&env).unwrap();
         assert!(is_locked(&env));
 
-        assert_eq!(
-            ReentrancyGuard::new(&env).unwrap_err(),
-            REENTRANCY_ERROR_CODE
-        );
+        let guard2 = ReentrancyGuard::new(&env);
+        assert!(guard2.is_err());
+        if let Err(e) = guard2 {
+            assert_eq!(e, REENTRANCY_ERROR_CODE);
+        }
 
         drop(guard);
 
@@ -134,7 +135,7 @@ fn reentrancy_guard_rejects_nested_entry_and_unlocks_after_drop() {
 fn deposit_rejects_callback_reentry_and_releases_lock() {
     let (env, contract_id, client, token_id, user) = setup_test();
 
-    client.deposit_collateral(&user, &Some(token_id), &1_000).unwrap();
+    client.deposit_collateral(&user, &Some(token_id), &1_000);
 
     env.as_contract(&contract_id, || {
         assert!(!is_locked(&env));
@@ -146,7 +147,7 @@ fn withdraw_rejects_callback_reentry_and_releases_lock() {
     let (env, contract_id, client, token_id, user) = setup_test();
     seed_position(&env, &contract_id, &user, 1_000, 0);
 
-    client.withdraw_collateral(&user, &Some(token_id), &500).unwrap();
+    client.withdraw_collateral(&user, &Some(token_id), &500);
 
     env.as_contract(&contract_id, || {
         assert!(!is_locked(&env));
@@ -158,7 +159,7 @@ fn repay_rejects_callback_reentry_and_releases_lock() {
     let (env, contract_id, client, token_id, user) = setup_test();
     seed_position(&env, &contract_id, &user, 10_000, 1_000);
 
-    client.repay_debt(&user, &Some(token_id), &500).unwrap();
+    client.repay_debt(&user, &Some(token_id), &500);
 
     env.as_contract(&contract_id, || {
         assert!(!is_locked(&env));

@@ -43,17 +43,17 @@ impl CacheService {
     }
 
     /// Generate cache key for events
-    fn event_key(id: &str) -> String {
+    pub fn event_key(id: &str) -> String {
         format!("event:{}", id)
     }
 
     /// Generate cache key for event queries
-    fn query_key(query_hash: &str) -> String {
+    pub fn query_key(query_hash: &str) -> String {
         format!("query:{}", query_hash)
     }
 
     /// Generate cache key for statistics
-    fn stats_key() -> String {
+    pub fn stats_key() -> String {
         "stats:global".to_string()
     }
 
