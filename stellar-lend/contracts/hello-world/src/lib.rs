@@ -731,6 +731,7 @@ impl HelloContract {
     ) -> Result<i128, AmmError> {
         amm::amm_swap(env, user, params)
     }
+    }
 
     // ============================================================================
     // Bridge Methods
