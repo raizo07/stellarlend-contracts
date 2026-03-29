@@ -187,16 +187,6 @@ impl HelloContract {
         crate::deposit::set_native_asset_address(&env, caller, native_asset)
     }
 
-    /// Withdraw collateral from the protocol.
-    pub fn withdraw_collateral(
-        env: Env,
-        user: Address,
-        asset: Option<Address>,
-        amount: i128,
-    ) -> Result<i128, crate::withdraw::WithdrawError> {
-        crate::withdraw::withdraw_collateral(&env, user, asset, amount)
-    }
-
     /// Set risk parameters (admin only).
     pub fn set_risk_params(
         env: Env,
@@ -325,7 +315,14 @@ impl HelloContract {
         collateral_asset: Option<Address>,
         amount: i128,
     ) -> Result<i128, crate::liquidate::LiquidationError> {
-        let (repaid, _seized, _fee) = liquidate(&env, caller, borrower, asset, None, amount)?;
+        let (repaid, _seized, _fee) = liquidate(
+            &env,
+            liquidator,
+            borrower,
+            debt_asset,
+            collateral_asset,
+            amount,
+        )?;
         Ok(repaid)
     }
 
@@ -385,11 +382,6 @@ impl HelloContract {
         interest_rate::calculate_supply_rate(&env).unwrap_or(0)
     }
 
-    /// Get protocol utilization in basis points.
-    pub fn get_utilization(env: Env) -> i128 {
-        analytics::get_protocol_utilization(&env).unwrap_or(0)
-    }
-
     /// Configure flash-loan parameters (admin only).
     pub fn configure_flash_loan(
         env: Env,
@@ -406,15 +398,6 @@ impl HelloContract {
         fee_bps: i128,
     ) -> Result<(), crate::flash_loan::FlashLoanError> {
         flash_loan::set_flash_loan_fee(&env, caller, fee_bps)
-    }
-
-    /// Set emergency interest-rate adjustment in basis points (admin only).
-    pub fn set_emergency_rate_adjustment(
-        env: Env,
-        caller: Address,
-        adjustment_bps: i128,
-    ) -> Result<(), crate::interest_rate::InterestRateError> {
-        interest_rate::set_emergency_rate_adjustment(&env, caller, adjustment_bps)
     }
 
     /// Update interest rate model configuration (admin only).
@@ -443,11 +426,6 @@ impl HelloContract {
             spread,
         )
         .map_err(|_| RiskManagementError::InvalidParameter)
-    }
-
-    /// Get current protocol utilization in basis points (0–10 000).
-    pub fn get_utilization(env: Env) -> i128 {
-        interest_rate::calculate_utilization(&env).unwrap_or(0)
     }
 
     /// Set an emergency rate adjustment (admin only).
@@ -547,7 +525,7 @@ impl HelloContract {
             #[cfg(not(test))]
             {
                 let token_client = soroban_sdk::token::Client::new(&env, &_asset_addr);
-                token_client.transfer(&env.current_contract_address(), &to, &amount);
+                token_client.transfer(&env.current_contract_address(), &_to, &amount);
             }
         }
 
@@ -727,10 +705,9 @@ impl HelloContract {
     pub fn amm_swap(
         env: Env,
         user: Address,
-        params: SwapParams,
-    ) -> Result<i128, AmmError> {
+        params: crate::amm::SwapParams,
+    ) -> Result<i128, crate::amm::AmmError> {
         amm::amm_swap(env, user, params)
-    }
     }
 
     // ============================================================================
@@ -1213,9 +1190,6 @@ impl HelloContract {
         governance::can_vote(&env, voter, proposal_id)
     }
 }
-
-#[cfg(test)]
-mod test_reentrancy;
 
 #[cfg(test)]
 mod flash_loan_test;

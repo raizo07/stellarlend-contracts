@@ -46,5 +46,6 @@ pub mod interest_rate_test;    // re-enabled: API aligned with new entrypoints
 // pub mod test_cross_asset_borrow_repay_edge_cases;
 pub mod test_helpers;
 pub mod cross_asset_test;
+pub mod collateral_factor_max_borrow_spec;
 // pub mod views_test;
 // pub mod fees_test;
