@@ -426,9 +426,17 @@ pub fn calculate_accrued_interest(
         .checked_mul(time_elapsed as i128)
         .ok_or(InterestRateError::Overflow)?;
 
-    let interest = numerator
+    let quotient = numerator
         .checked_div(denominator)
         .ok_or(InterestRateError::DivisionByZero)?;
+    let remainder = numerator
+        .checked_rem(denominator)
+        .ok_or(InterestRateError::DivisionByZero)?;
+    let interest = if numerator > 0 && remainder > 0 {
+        quotient.checked_add(1).ok_or(InterestRateError::Overflow)?
+    } else {
+        quotient
+    };
 
     Ok(interest.max(0))
 }
