@@ -42,20 +42,28 @@ jobs:
         run: |
           cd stellar-lend/contracts/lending
           cargo fmt -- --check
+          cd ../hello-world
+          cargo fmt -- --check
 
       - name: Run clippy
         run: |
           cd stellar-lend/contracts/lending
+          cargo clippy --all-targets --all-features -- -D warnings -A deprecated
+          cd ../hello-world
           cargo clippy --all-targets --all-features -- -D warnings -A deprecated
 
       - name: Build project
         run: |
           cd stellar-lend/contracts/lending
           cargo build --verbose
+          cd ../hello-world
+          cargo build --verbose
 
       - name: Run tests
         run: |
           cd stellar-lend/contracts/lending
+          cargo test --verbose
+          cd ../hello-world
           cargo test --verbose
 
       - name: Generate lending test report
@@ -64,11 +72,19 @@ jobs:
           cargo test --verbose -- --nocapture > lending_test_report.txt
           cat lending_test_report.txt
 
+      - name: Generate hello-world test report
+        run: |
+          cd stellar-lend/contracts/hello-world
+          cargo test --verbose -- --nocapture > hello_world_test_report.txt
+          cat hello_world_test_report.txt
+
       - name: Upload test report
         uses: actions/upload-artifact@v4
         with:
-          name: lending-test-report
-          path: stellar-lend/contracts/lending/lending_test_report.txt
+          name: test-reports
+          path: |
+            stellar-lend/contracts/lending/lending_test_report.txt
+            stellar-lend/contracts/hello-world/hello_world_test_report.txt
 
       # Pin version so line-% thresholds stay comparable across CI runs (latest
       # tarpaulin/llvm can shift percentages without code changes).
@@ -81,6 +97,8 @@ jobs:
         run: |
           cd stellar-lend/contracts/lending
           cargo tarpaulin --verbose --out Xml --packages stellarlend-lending --fail-under 88 --exclude-files "../../indexing_system/*" ../../indexing_system/*
+          cd ../hello-world
+          cargo tarpaulin --verbose --out Xml --fail-under 88
 
       - name: Install cargo-audit
         run: cargo install cargo-audit
