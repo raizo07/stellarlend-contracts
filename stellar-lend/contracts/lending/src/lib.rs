@@ -92,6 +92,9 @@ mod liquidation_boundary_test;
 #[cfg(test)]
 mod stress_test;
 
+#[cfg(test)]
+mod coverage_gap_test;
+
 #[contract]
 pub struct LendingContract;
 
