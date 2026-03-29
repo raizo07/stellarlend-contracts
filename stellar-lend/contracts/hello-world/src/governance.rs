@@ -1102,17 +1102,20 @@ pub fn add_guardian(env: &Env, caller: Address, guardian: Address) -> Result<(),
 ///
 /// If removing a guardian would make `threshold > guardians.len()`,
 /// the threshold is automatically lowered to `guardians.len()`.
+/// Cannot remove guardians during active recovery to prevent bricking.
 ///
 /// # Errors
 ///
 /// - `NotInitialized` — governance not initialized.
 /// - `Unauthorized` — caller is not admin.
 /// - `GuardianNotFound` — guardian is not in the set.
+/// - `RecoveryInProgress` — cannot remove guardians during active recovery.
+/// - `InvalidGuardianConfig` — removal would make recovery impossible.
 ///
 /// # Security
 ///
 /// Only admin can remove guardians. Threshold is auto-adjusted to prevent
-/// a state where recovery becomes impossible.
+/// a state where recovery becomes impossible. Cannot modify during recovery.
 pub fn remove_guardian(
     env: &Env,
     caller: Address,
@@ -1151,9 +1154,38 @@ pub fn remove_guardian(
         return Err(GovernanceError::GuardianNotFound);
     }
 
-    guardian_config.guardians = new_guardians;
+    // Check if recovery is in progress - prevent guardian removal during recovery
+    if env.storage().persistent().has(&GovernanceDataKey::RecoveryRequest) {
+        return Err(GovernanceError::RecoveryInProgress);
+    }
 
-    // Auto-adjust threshold downward if needed.
+    // Validate that removal won't brick existing recovery
+    let current_approvals: Vec<Address> = env
+        .storage()
+        .persistent()
+        .get(&GovernanceDataKey::RecoveryApprovals)
+        .unwrap_or_else(|| Vec::new(env));
+    
+    // Count how many current guardians have approved (excluding the one being removed)
+    let mut current_guardian_approvals = 0;
+    for approval in current_approvals.iter() {
+        if guardian_config.guardians.contains(approval) && approval != &guardian {
+            current_guardian_approvals += 1;
+        }
+    }
+    
+    // After removal, we need enough remaining guardians to meet threshold
+    let remaining_guardians = guardian_config.guardians.len() - 1;
+    let new_threshold = guardian_config.threshold.min(remaining_guardians as u32);
+    
+    // If we have an active recovery, ensure we can still complete it
+    if current_guardian_approvals < new_threshold {
+        return Err(GovernanceError::InvalidGuardianConfig);
+    }
+
+    guardian_config.guardians = new_guardians;
+    
+    // Auto-adjust threshold downward if needed (after validation)
     if guardian_config.threshold > guardian_config.guardians.len() {
         guardian_config.threshold = guardian_config.guardians.len();
     }
@@ -1180,10 +1212,12 @@ pub fn remove_guardian(
 /// - `Unauthorized` — caller is not admin.
 /// - `GuardianNotFound` — guardian config not set.
 /// - `InvalidGuardianConfig` — threshold is zero or exceeds guardian count.
+/// - `RecoveryInProgress` — cannot change threshold during active recovery.
 ///
 /// # Security
 ///
 /// Only admin. Threshold must be ≥ 1 and ≤ guardian count.
+/// Cannot change threshold while recovery is active to prevent bricking.
 pub fn set_guardian_threshold(
     env: &Env,
     caller: Address,
@@ -1206,6 +1240,11 @@ pub fn set_guardian_threshold(
         .instance()
         .get(&GovernanceDataKey::GuardianConfig)
         .ok_or(GovernanceError::GuardianNotFound)?;
+
+    // Check if recovery is in progress - prevent threshold changes during recovery
+    if env.storage().persistent().has(&GovernanceDataKey::RecoveryRequest) {
+        return Err(GovernanceError::RecoveryInProgress);
+    }
 
     if threshold == 0 || threshold > guardian_config.guardians.len() {
         return Err(GovernanceError::InvalidGuardianConfig);

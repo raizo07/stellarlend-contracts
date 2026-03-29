@@ -82,12 +82,35 @@ pub fn add_guardian(env: &Env, caller: Address, guardian: Address) -> Result<(),
     Ok(())
 }
 
+/// Remove a guardian (multisig admin-only).
+///
+/// Cannot remove guardians during active recovery to prevent bricking.
+///
+/// # Errors
+///
+/// - `Unauthorized` — caller is not a multisig admin.
+/// - `GuardianNotFound` — guardian is not in the set.
+/// - `RecoveryInProgress` — cannot remove guardians during active recovery.
+/// - `InvalidGuardianConfig` — removal would make recovery impossible.
+///
+/// # Security
+///
+/// Only multisig admins can remove guardians. Cannot modify during recovery.
 pub fn remove_guardian(
     env: &Env,
     caller: Address,
     guardian: Address,
 ) -> Result<(), GovernanceError> {
     require_multisig_admin(env, &caller)?;
+
+    // Check if recovery is in progress - prevent guardian removal during recovery
+    if env
+        .storage()
+        .persistent()
+        .has(&GovernanceDataKey::RecoveryRequest)
+    {
+        return Err(GovernanceError::RecoveryInProgress);
+    }
 
     let guardians: Vec<Address> = env
         .storage()
@@ -109,6 +132,37 @@ pub fn remove_guardian(
         return Err(GovernanceError::GuardianNotFound);
     }
 
+    // Validate that removal won't brick existing recovery
+    let current_approvals: Vec<Address> = env
+        .storage()
+        .persistent()
+        .get(&GovernanceDataKey::RecoveryApprovals)
+        .unwrap_or_else(|| Vec::new(env));
+    
+    // Count how many current guardians have approved (excluding one being removed)
+    let mut current_guardian_approvals = 0;
+    for approval in current_approvals.iter() {
+        if guardians.contains(approval) && approval != &guardian {
+            current_guardian_approvals += 1;
+        }
+    }
+    
+    // Get current threshold
+    let threshold: u32 = env
+        .storage()
+        .persistent()
+        .get(&GovernanceDataKey::GuardianThreshold)
+        .unwrap_or(1u32);
+    
+    // After removal, we need enough remaining guardians to meet threshold
+    let remaining_guardians = guardians.len() - 1;
+    let new_threshold = threshold.min(remaining_guardians as u32);
+    
+    // If we have an active recovery, ensure we can still complete it
+    if current_guardian_approvals < new_threshold {
+        return Err(GovernanceError::InvalidGuardianConfig);
+    }
+
     env.storage()
         .persistent()
         .set(&GovernanceDataKey::Guardians, &new_guardians);
@@ -116,12 +170,33 @@ pub fn remove_guardian(
     Ok(())
 }
 
+/// Set the guardian approval threshold (multisig admin-only).
+///
+/// # Errors
+///
+/// - `Unauthorized` — caller is not a multisig admin.
+/// - `InvalidGuardianConfig` — threshold is zero or exceeds guardian count.
+/// - `RecoveryInProgress` — cannot change threshold during active recovery.
+///
+/// # Security
+///
+/// Only multisig admins can change threshold. Cannot change during active recovery
+/// to prevent bricking the recovery process.
 pub fn set_guardian_threshold(
     env: &Env,
     caller: Address,
     threshold: u32,
 ) -> Result<(), GovernanceError> {
     require_multisig_admin(env, &caller)?;
+
+    // Check if recovery is in progress - prevent threshold changes during recovery
+    if env
+        .storage()
+        .persistent()
+        .has(&GovernanceDataKey::RecoveryRequest)
+    {
+        return Err(GovernanceError::RecoveryInProgress);
+    }
 
     let guardians: Vec<Address> = env
         .storage()
