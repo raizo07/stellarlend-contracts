@@ -519,7 +519,7 @@ impl UpgradeManager {
             .storage()
             .persistent()
             .get(&UpgradeKey::UpAdmin)
-            .unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, UpgradeError::NotInitialized));
         if *caller != admin {
             panic_with_error!(env, UpgradeError::NotAuthorized);
         }
