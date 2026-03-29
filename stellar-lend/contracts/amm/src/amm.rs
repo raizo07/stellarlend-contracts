@@ -257,6 +257,9 @@ pub struct AmmCallbackData {
 /// # Events
 /// Emits swap_executed, position_updated, and amm_operation events
 pub fn execute_swap(env: &Env, user: Address, params: SwapParams) -> Result<i128, AmmError> {
+    // Secure authorization check
+    user.require_auth();
+
     // Validate swap parameters
     validate_swap_params(env, &params)?;
 
@@ -299,7 +302,8 @@ pub fn execute_swap(env: &Env, user: Address, params: SwapParams) -> Result<i128
         deadline: params.deadline,
     };
 
-    // Execute the actual swap through AMM protocol
+    // Execute the actual swap through AMM protocol contract
+    // The protocol is expected to call back validate_amm_callback
     let amount_out = execute_amm_swap(env, &params, &callback_data)?;
 
     // Validate minimum output
@@ -835,24 +839,31 @@ fn find_best_amm_protocol(
 // In a real implementation, these would call external AMM contracts
 
 /// Execute swap through AMM protocol
+/// Execute swap through an external AMM protocol contract.
+/// This function constructs the necessary arguments and invokes the `swap` function
+/// on the specified AMM protocol contract.
+///
+/// The AMM protocol is expected to return the actual amount of `token_out` received.
+/// Errors during the external contract invocation will propagate.
 fn execute_amm_swap(
     env: &Env,
     params: &SwapParams,
     callback_data: &AmmCallbackData,
 ) -> Result<i128, AmmError> {
-    // Mock implementation - in reality, this would call the AMM protocol contract
-    // For now, we'll simulate a successful swap with some slippage
-    let slippage_factor = 10_000i128
-        .checked_sub(params.slippage_tolerance)
-        .ok_or(AmmError::Overflow)?;
-    let amount_out = params
-        .amount_in
-        .checked_mul(slippage_factor)
-        .and_then(|v| v.checked_div(10_000))
-        .ok_or(AmmError::Overflow)?;
+    // Prepare arguments for external AMM protocol call
+    // Standard AMM interface: swap(executor, token_in, token_out, amount_in, min_amount_out, callback_data)
+    let mut args: Vec<Val> = Vec::new(env);
+    args.push_back(callback_data.user.to_val());
+    args.push_back(params.token_in.to_val());
+    args.push_back(params.token_out.to_val());
+    args.push_back(params.amount_in.into_val(env));
+    args.push_back(params.min_amount_out.into_val(env));
+    args.push_back(callback_data.to_val());
 
-    // Validate callback (this would be called by the AMM protocol)
-    validate_amm_callback(env, params.protocol.clone(), callback_data.clone())?;
+    // Invoke the external AMM protocol contract
+    // We expect the protocol to return the actual amount_out received
+    // Errors during protocol execution will propagate up
+    let amount_out: i128 = env.invoke_contract(&params.protocol, &Symbol::new(env, "swap"), args);
 
     Ok(amount_out)
 }
