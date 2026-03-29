@@ -16,7 +16,6 @@ use borrow::{
     get_close_factor_bps as get_close_factor_impl,
     get_insurance_fund_balance as get_insurance_fund_impl,
     get_liquidation_incentive_bps as get_liquidation_incentive_bps_impl,
-    get_liquidation_threshold_bps as get_liq_threshold_bps_impl,
     get_total_bad_debt as get_bad_debt_impl, get_user_collateral as get_borrow_collateral,
     get_user_debt as get_user_debt_impl, initialize_borrow_settings as init_borrow_settings_impl,
     offset_bad_debt as offset_bad_debt_impl, repay as borrow_repay,
@@ -90,11 +89,11 @@ mod upgrade_test;
 mod withdraw_test;
 
 #[cfg(test)]
+mod bad_debt_test;
+#[cfg(test)]
 mod liquidation_boundary_test;
 #[cfg(test)]
 mod multi_user_contention_test;
-#[cfg(test)]
-mod bad_debt_test;
 #[cfg(test)]
 mod stress_test;
 
@@ -268,13 +267,23 @@ impl LendingContract {
     }
 
     /// Credits the insurance fund for an asset (Admin only).
-    pub fn credit_insurance_fund(env: Env, caller: Address, asset: Address, amount: i128) -> Result<(), BorrowError> {
+    pub fn credit_insurance_fund(
+        env: Env,
+        caller: Address,
+        asset: Address,
+        amount: i128,
+    ) -> Result<(), BorrowError> {
         ensure_admin(&env, &caller)?;
         credit_insurance_impl(&env, &asset, amount)
     }
 
     /// Manually offsets bad debt using the insurance fund (Admin only).
-    pub fn offset_bad_debt(env: Env, caller: Address, asset: Address, amount: i128) -> Result<(), BorrowError> {
+    pub fn offset_bad_debt(
+        env: Env,
+        caller: Address,
+        asset: Address,
+        amount: i128,
+    ) -> Result<(), BorrowError> {
         ensure_admin(&env, &caller)?;
         offset_bad_debt_impl(&env, &asset, amount)
     }

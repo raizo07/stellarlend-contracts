@@ -114,7 +114,7 @@ pub fn borrow(
         return Err(BorrowError::ProtocolPaused);
     }
 
-    if amount <= 0 || collateral_amount <= 0 {
+    if amount <= 0 || collateral_amount < 0 {
         return Err(BorrowError::InvalidAmount);
     }
 
@@ -124,20 +124,42 @@ pub fn borrow(
         return Err(BorrowError::BelowMinimumBorrow);
     }
 
-    validate_collateral_ratio(collateral_amount, amount)?;
+    let mut debt_position = get_debt_position(env, &user);
+    let accrued_interest = calculate_interest(env, &debt_position);
+
+    let mut collateral_position = get_collateral_position(env, &user);
+    if collateral_amount > 0 {
+        if collateral_position.amount > 0 && collateral_position.asset != collateral_asset {
+            return Err(BorrowError::AssetNotSupported);
+        }
+        collateral_position.asset = collateral_asset.clone();
+    }
+
+    let next_total_debt = debt_position
+        .borrowed_amount
+        .checked_add(debt_position.interest_accrued)
+        .ok_or(BorrowError::Overflow)?
+        .checked_add(accrued_interest)
+        .ok_or(BorrowError::Overflow)?
+        .checked_add(amount)
+        .ok_or(BorrowError::Overflow)?;
+
+    let next_total_collateral = collateral_position
+        .amount
+        .checked_add(collateral_amount)
+        .ok_or(BorrowError::Overflow)?;
+
+    validate_collateral_ratio(next_total_collateral, next_total_debt)?;
 
     let total_debt = get_total_debt(env);
-    let debt_ceiling = get_debt_ceiling(env);
     let new_total = total_debt
         .checked_add(amount)
         .ok_or(BorrowError::Overflow)?;
 
+    let debt_ceiling = get_debt_ceiling(env);
     if new_total > debt_ceiling {
         return Err(BorrowError::DebtCeilingReached);
     }
-
-    let mut debt_position = get_debt_position(env, &user);
-    let accrued_interest = calculate_interest(env, &debt_position);
 
     debt_position.borrowed_amount = debt_position
         .borrowed_amount
@@ -150,12 +172,7 @@ pub fn borrow(
     debt_position.last_update = env.ledger().timestamp();
     debt_position.asset = asset.clone();
 
-    let mut collateral_position = get_collateral_position(env, &user);
-    collateral_position.amount = collateral_position
-        .amount
-        .checked_add(collateral_amount)
-        .ok_or(BorrowError::Overflow)?;
-    collateral_position.asset = collateral_asset.clone();
+    collateral_position.amount = next_total_collateral;
 
     save_debt_position(env, &user, &debt_position);
     save_collateral_position(env, &user, &collateral_position);
@@ -564,7 +581,7 @@ pub fn liquidate_position(
     _liquidator: Address,
     borrower: Address,
     debt_asset: Address,
-    collateral_asset: Address,
+    _collateral_asset: Address,
     amount: i128,
 ) -> Result<(), BorrowError> {
     if amount <= 0 {
@@ -611,11 +628,9 @@ pub fn liquidate_position(
     // Accounting for Bad Debt
     if repay_amount > collateral_to_seize {
         let shortfall = repay_amount - collateral_to_seize;
-        let current_bad_debt = get_total_bad_debt(env, &debt_asset);
-        let new_bad_debt = current_bad_debt
+        let mut new_bad_debt = get_total_bad_debt(env, &debt_asset)
             .checked_add(shortfall)
             .ok_or(BorrowError::Overflow)?;
-        set_total_bad_debt(env, &debt_asset, new_bad_debt);
 
         BadDebtEvent {
             asset: debt_asset.clone(),
@@ -630,8 +645,8 @@ pub fn liquidate_position(
         if fund_balance > 0 {
             let offset = fund_balance.min(new_bad_debt);
             set_insurance_fund_balance(env, &debt_asset, fund_balance - offset);
-            set_total_bad_debt(env, &debt_asset, new_bad_debt - offset);
-            
+            new_bad_debt -= offset;
+
             InsuranceFundEvent {
                 asset: debt_asset.clone(),
                 amount: offset,
@@ -641,6 +656,7 @@ pub fn liquidate_position(
             }
             .publish(env);
         }
+        set_total_bad_debt(env, &debt_asset, new_bad_debt);
     }
 
     // Effect updates
@@ -651,7 +667,7 @@ pub fn liquidate_position(
             .borrowed_amount
             .checked_sub(remaining)
             .ok_or(BorrowError::Overflow)?;
-            
+
         let total_global_debt = get_total_debt(env);
         set_total_debt(env, total_global_debt.saturating_sub(remaining));
     } else {
