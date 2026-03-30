@@ -183,10 +183,14 @@ pub fn liquidate_position(
         .ok_or(BorrowError::Overflow)?;
 
     // Verify asset match.
-    if total_debt == 0 || debt_position.asset != debt_asset {
+    if debt_position.asset != debt_asset {
         return Err(BorrowError::AssetNotSupported);
     }
 
+    // Reject liquidation when there is no outstanding debt for this asset.
+    if total_debt == 0 {
+        return Err(BorrowError::InsufficientCollateral);
+    }
     let mut collateral_position = get_collateral_position(env, &borrower);
     if collateral_position.asset != collateral_asset {
         return Err(BorrowError::AssetNotSupported);
