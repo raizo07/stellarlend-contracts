@@ -273,12 +273,37 @@ pub fn is_operation_paused(env: &Env, operation: Symbol) -> bool {
     }
 }
 
-/// Require that an operation is not paused
+/// Require that an operation is not paused.
+///
+/// Checks the **emergency pause first**, then the per-operation switch.
+/// This layering ensures a single `set_emergency_pause(true)` call halts
+/// every operation without having to update every individual switch.
+///
+/// ## Pause precedence matrix
+///
+/// | emergency | per-op | result                        |
+/// |-----------|--------|-------------------------------|
+/// | false     | false  | ✅ allowed                     |
+/// | false     | true   | ❌ `OperationPaused`           |
+/// | true      | false  | ❌ `EmergencyPaused`           |
+/// | true      | true   | ❌ `EmergencyPaused` (wins)    |
+///
+/// # Errors
+/// * [`RiskManagementError::EmergencyPaused`] – global emergency halt is active.
+/// * [`RiskManagementError::OperationPaused`] – this specific operation is paused.
+///
+/// # Security
+/// Always call this at the start of every user-facing entry point before
+/// reading or writing any protocol state.
 pub fn require_operation_not_paused(
     env: &Env,
     operation: Symbol,
 ) -> Result<(), RiskManagementError> {
-    if is_operation_paused(env, operation.clone()) {
+    // Emergency pause takes precedence over per-operation switches.
+    if is_emergency_paused(env) {
+        return Err(RiskManagementError::EmergencyPaused);
+    }
+    if is_operation_paused(env, operation) {
         return Err(RiskManagementError::OperationPaused);
     }
     Ok(())
