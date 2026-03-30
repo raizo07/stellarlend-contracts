@@ -40,13 +40,13 @@
 //!
 //! ## Arithmetic Safety
 //!
-//! All multiplications that could overflow i128 are performed via `I256` and the
-//! result is narrowed back with `.to_i128().unwrap_or(0)`. Additions and
-//! subtractions use `checked_add` / `checked_sub` / `saturating_sub` as annotated.
+//! Arithmetic operations that could overflow are implemented using checked or
+//! saturating variants where appropriate. Additions and subtractions use
+//! `checked_add` / `checked_sub` / `saturating_sub` as annotated.
 
 #![allow(unexpected_cfgs)]
 
-use soroban_sdk::{contractevent, Address, Env, I256};
+use soroban_sdk::{contractevent, Address, Env};
 
 use crate::borrow::{
     get_collateral_position, get_debt_position, get_total_debt, save_collateral_position,
