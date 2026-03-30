@@ -110,6 +110,8 @@ mod multi_user_contention_test;
 #[cfg(test)]
 mod oracle_test;
 #[cfg(test)]
+mod oracle_test;
+#[cfg(test)]
 mod stress_test;
 
 #[contract]
