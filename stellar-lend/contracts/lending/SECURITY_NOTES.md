@@ -17,3 +17,4 @@ In Soroban, contract logic guarantees atomicity. However, as an added measure ag
 
 ## Arithmetic Bounds
 Protocol parameters strictly utilize `checked_add`, `checked_sub`, `checked_mul`, and `checked_div` to prevent overflow and underflow paths. Zero-amount and uninitialized parameter paths intentionally return structured `ContractError` values rather than panicking where possible.
+However, in specific read-heavy or global views (such as `get_user_debt` or `total_debt` tracking), intentional `saturating_add` and `saturating_sub` operations are used. This specific behavior prevents legitimate queries from trapping upon edge cases (such as simulating a ledger jump 100 years in the future) and breaking UIs or telemetry.
