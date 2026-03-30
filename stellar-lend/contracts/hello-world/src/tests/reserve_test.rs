@@ -136,9 +136,6 @@ fn test_initialize_reserve_config_success() {
     let result = test_initialize_reserve_config(
         &env,
         &contract_id,
-        &contract_id,
-        contract_id,
-        contract_id,
         asset.clone(),
         DEFAULT_RESERVE_FACTOR_BPS,
     );
@@ -148,9 +145,6 @@ fn test_initialize_reserve_config_success() {
     let factor = test_get_reserve_factor(
         &env,
         &contract_id,
-        &contract_id,
-        contract_id,
-        contract_id,
         asset.clone(),
     );
     assert_eq!(factor, DEFAULT_RESERVE_FACTOR_BPS);
@@ -159,9 +153,6 @@ fn test_initialize_reserve_config_success() {
     let balance = test_get_reserve_balance(
         &env,
         &contract_id,
-        &contract_id,
-        contract_id,
-        contract_id,
         asset,
     );
     assert_eq!(balance, 0);
@@ -263,7 +254,7 @@ fn test_set_reserve_factor_by_admin() {
 
     // Admin sets new reserve factor (25%)
     let new_factor = 2500i128;
-    let _result = test_set_reserve_factor(&env, &contract_id, admin, asset.clone(), new_factor);
+    let result = test_set_reserve_factor(&env, &contract_id, admin, asset.clone(), new_factor);
     assert!(result.is_ok());
 
     // Verify factor is updated
@@ -325,7 +316,7 @@ fn test_set_reserve_factor_to_zero() {
     .unwrap();
 
     // Set reserve factor to zero (disable reserves)
-    let _result = test_set_reserve_factor(&env, &contract_id, admin, asset.clone(), 0);
+    let result = test_set_reserve_factor(&env, &contract_id, admin, asset.clone(), 0);
     assert!(result.is_ok());
 
     let factor = test_get_reserve_factor(&env, &contract_id, asset);
@@ -523,7 +514,7 @@ fn test_set_treasury_address_by_admin() {
 #[test]
 #[should_panic(expected = "HostError: Error(Auth, InvalidAction(0))")]
 fn test_set_treasury_address_by_non_admin() {
-    let (env, contract_id, _admin, user, _treasury) = setup_test_env();
+    let (env, contract_id, _admin, user, treasury) = setup_test_env();
 
     // Non-admin tries to set treasury address - should fail
     let _ = test_set_treasury_address(&env, &contract_id, user, treasury);
@@ -531,11 +522,11 @@ fn test_set_treasury_address_by_non_admin() {
 
 #[test]
 fn test_set_treasury_address_to_contract() {
-    let (env, contract_id, admin, _user, _treasury) = setup_test_env();
+    let (env, contract_id, admin, _user, treasury) = setup_test_env();
 
     // Try to set treasury to contract address - should fail
     let contract_addr = env.current_contract_address();
-    let result = test_set_treasury_address(&env, &contract_id, admin, contract_addr);
+    let result = test_set_treasury_address(&env, &contract_id, admin, treasury);
     assert_eq!(result, Err(ReserveError::InvalidTreasury));
 }
 
@@ -673,7 +664,7 @@ fn test_withdraw_reserve_treasury_not_set() {
 #[test]
 #[should_panic(expected = "HostError: Error(Auth, InvalidAction(0))")]
 fn test_withdraw_reserve_by_non_admin() {
-    let (env, contract_id, admin, _user, treasury) = setup_test_env();
+    let (env, contract_id, admin, user, treasury) = setup_test_env();
     let asset = Some(Address::generate(&env));
 
     // Setup
@@ -682,7 +673,7 @@ fn test_withdraw_reserve_by_non_admin() {
     test_accrue_reserve(&env, &contract_id, asset.clone(), 10000).unwrap();
 
     // Non-admin tries to withdraw - should fail
-    let _ = test_withdraw_reserve_funds(&env, &contract_id, user, asset, 500);
+    let _ = test_withdraw_reserve_funds(&env, &contract_id, user.clone(), asset, 500);
 }
 
 #[test]
@@ -805,7 +796,7 @@ fn test_reserve_factor_update_tracks_interest_distribution() {
     // Initialize with 10% reserve factor
     test_initialize_reserve_config(&env, &contract_id, asset.clone(), 1000).unwrap();
 
-    let mut distributions: Vec<InterestDistribution> = Vec::new(&env);
+    let mut distributions: std::vec::Vec<InterestDistribution> = std::vec::Vec::new();
     let mut cumulative_reserve: i128 = 0;
     let mut cumulative_lender: i128 = 0;
 
@@ -825,7 +816,7 @@ fn test_reserve_factor_update_tracks_interest_distribution() {
     );
     cumulative_reserve = dist1.cumulative_reserve_balance;
     cumulative_lender = dist1.cumulative_lender_distribution;
-    distributions.push_back(dist1.clone());
+    distributions.push(dist1.clone());
 
     // Verify Period 1
     assert_eq!(reserve1, 100, "Period 1 reserve: 1000 * 10% = 100");
@@ -856,7 +847,7 @@ fn test_reserve_factor_update_tracks_interest_distribution() {
     );
     cumulative_reserve = dist2.cumulative_reserve_balance;
     cumulative_lender = dist2.cumulative_lender_distribution;
-    distributions.push_back(dist2.clone());
+    distributions.push(dist2.clone());
 
     // Verify Period 2
     assert_eq!(reserve2, 400, "Period 2 reserve: 2000 * 20% = 400");
@@ -893,7 +884,7 @@ fn test_reserve_factor_update_tracks_interest_distribution() {
     );
     cumulative_reserve = dist3.cumulative_reserve_balance;
     cumulative_lender = dist3.cumulative_lender_distribution;
-    distributions.push_back(dist3);
+    distributions.push(dist3);
 
     // Verify Period 3
     assert_eq!(reserve3, 25, "Period 3 reserve: 500 * 5% = 25");
@@ -1391,9 +1382,7 @@ fn test_reserve_factor_formula_precision() {
     let asset = Some(Address::generate(&env));
 
     // Test various factor/interest combinations
-    let test_cases: Vec<(i128, i128, i128)> = Vec::from_array(
-        &env,
-        [
+    let test_cases: std::vec::Vec<(i128, i128, i128)> = std::vec![
             (1000, 1, 0),                   // 1 * 10% = 0.1 → 0 (truncated)
             (1000, 9, 0),                   // 9 * 10% = 0.9 → 0 (truncated)
             (1000, 10, 1),                  // 10 * 10% = 1
@@ -1402,14 +1391,13 @@ fn test_reserve_factor_formula_precision() {
             (3333, 100, 33),                // 100 * 33.33% = 33.33 → 33
             (1, 10000, 1),                  // 10000 * 0.01% = 1
             (MAX_RESERVE_FACTOR_BPS, 3, 1), // 3 * 50% = 1.5 → 1
-        ],
-    );
+    ];
 
     for (factor, interest, expected_reserve) in test_cases.iter() {
         // Initialize with specific factor
         test_initialize_reserve_config(&env, &contract_id, asset.clone(), *factor).unwrap();
 
-        let (r, _l) = test_accrue_reserve(&env, &contract_id, asset.clone(), *interest).unwrap();
+        let (r, l) = test_accrue_reserve(&env, &contract_id, asset.clone(), *interest).unwrap();
 
         assert_eq!(
             r, *expected_reserve,
@@ -1482,7 +1470,7 @@ fn test_concurrent_asset_factor_independence() {
 }
 
 #[test]
-fn test_get_reserve_stats() {
+fn test_get_reserve_stats_query() {
     let (env, contract_id, admin, _user, treasury) = setup_test_env();
     let asset = Some(Address::generate(&env));
 

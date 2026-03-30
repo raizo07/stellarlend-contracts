@@ -711,7 +711,7 @@ pub fn execute_proposal(
         .set(&GovernanceDataKey::Proposal(proposal_id), &proposal);
 
     // ── dispatch (may call external contracts) ──
-    let exec_result = execute_proposal_type(env, &proposal.proposal_type);
+    let exec_result = execute_proposal_type(env, &executor, &proposal.proposal_type);
     if exec_result.is_err() {
         // Roll back status on failure so the proposal can be retried.
         proposal.status = ProposalStatus::Queued;
@@ -737,15 +737,16 @@ pub fn execute_proposal(
 ///
 /// `GenericAction` invokes an arbitrary contract — the target is fully
 /// untrusted. The reentrancy guard in `execute_proposal` covers re-entry.
-fn execute_proposal_type(env: &Env, proposal_type: &ProposalType) -> Result<(), GovernanceError> {
+fn execute_proposal_type(env: &Env, executor: &Address, proposal_type: &ProposalType) -> Result<(), GovernanceError> {
     match proposal_type {
         ProposalType::MinCollateralRatio(val) => {
-            crate::risk_params::set_risk_params(env, Some(*val), None, None, None)
+            crate::risk_params::set_risk_params(env, executor, Some(*val), None, None, None)
                 .map_err(|_| GovernanceError::ExecutionFailed)?;
         }
         ProposalType::RiskParams(min_cr, liq_threshold, close_factor, liq_incentive) => {
             crate::risk_params::set_risk_params(
                 env,
+                executor,
                 *min_cr,
                 *liq_threshold,
                 *close_factor,

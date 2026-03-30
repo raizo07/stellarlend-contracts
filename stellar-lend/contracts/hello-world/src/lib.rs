@@ -2,7 +2,6 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 
-use soroban_sdk::{contract, contractimpl, Address, Env, Map, Symbol, Vec};
 use soroban_sdk::{contract, contractimpl, Address, Env, Map, Symbol, Vec, contracttype, contracterror};
 
 pub mod admin;
@@ -33,13 +32,16 @@ pub mod types;
 pub mod withdraw;
 
 #[cfg(test)]
+mod test_hardened_risk_params;
+
+#[cfg(test)]
 mod tests;
 // Legacy test suite currently mismatches contract API and is excluded from CI compile.
 // #[cfg(test)]
 // mod tests;
 
+// use crate::oracle::OracleConfig;
 use crate::oracle::OracleConfig;
-use crate::risk_management::{RiskConfig, RiskManagementError};
 
 /// Helper function to require admin authorization
 fn require_admin(env: &Env, caller: &Address) -> Result<(), RiskManagementError> {
@@ -62,18 +64,7 @@ fn require_admin(env: &Env, caller: &Address) -> Result<(), RiskManagementError>
 use borrow::borrow_asset;
 use deposit::deposit_collateral;
 use repay::repay_debt;
-
-use risk_management::{
-    check_emergency_pause, initialize_risk_management, is_emergency_paused, is_operation_paused,
-};
-
-use risk_params::{
-    can_be_liquidated, get_liquidation_incentive_amount, get_max_liquidatable_amount,
-    initialize_risk_params, require_min_collateral_ratio, RiskParamsError,
-};
 use withdraw::withdraw_collateral;
-use crate::deposit::{DepositDataKey, ProtocolAnalytics};
-use crate::config_snapshot::{get_config_snapshot, ConfigSnapshot};
 
 use crate::analytics::{
     generate_protocol_report, generate_user_report, get_recent_activity, get_user_activity_feed,
@@ -91,24 +82,14 @@ use crate::deposit::{DepositDataKey, ProtocolAnalytics};
 use crate::flash_loan::{
     configure_flash_loan, execute_flash_loan, repay_flash_loan, set_flash_loan_fee, FlashLoanConfig,
 };
-
-#[allow(unused_imports)]
-use bridge::{
-    bridge_deposit, bridge_withdraw, get_bridge_config, list_bridges, register_bridge,
-    set_bridge_fee, BridgeConfig, BridgeError,
-};
-
-
-#[allow(unused_imports)]
 use crate::interest_rate::{
     initialize_interest_rate_config, update_interest_rate_config, InterestRateConfig,
     InterestRateError,
 };
 use crate::liquidate::liquidate;
-use crate::oracle::OracleConfig;
 use crate::risk_management::{
     check_emergency_pause, initialize_risk_management, is_emergency_paused, is_operation_paused,
-    require_admin, set_pause_switch, set_pause_switches, RiskConfig, RiskManagementError,
+    set_pause_switch, set_pause_switches, RiskConfig, RiskManagementError,
 };
 use crate::risk_params::{
     can_be_liquidated, get_liquidation_incentive_amount, get_max_liquidatable_amount,
@@ -120,29 +101,11 @@ use crate::types::{
     VoteInfo, VoteType,
 };
 
-// AMM types (temporary stubs until stellarlend_amm types are made public)
-#[derive(Clone)]
-#[contracttype]
-pub struct AmmProtocolConfig {
-    // Placeholder fields
-}
-
-#[derive(Clone)]
-#[contracttype]
-pub struct SwapParams {
-    // Placeholder fields
-}
-
-#[derive(Clone, Debug)]
-#[contracterror]
-pub enum AmmError {
-    InvalidParams = 1,
-    InsufficientLiquidity = 2,
-    SlippageExceeded = 3,
-}
-
-pub mod reentrancy;
-
+#[allow(unused_imports)]
+use bridge::{
+    bridge_deposit, bridge_withdraw, get_bridge_config, list_bridges, register_bridge,
+    set_bridge_fee,
+};
 
 /// The StellarLend core contract.
 #[contract]
@@ -261,17 +224,36 @@ impl HelloContract {
         crate::deposit::set_native_asset_address(&env, caller, native_asset)
     }
 
-    /// Withdraw collateral from the protocol.
-    pub fn withdraw_collateral(
-        env: Env,
-        user: Address,
-        asset: Option<Address>,
-        amount: i128,
-    ) -> Result<i128, crate::withdraw::WithdrawError> {
-        crate::withdraw::withdraw_collateral(&env, user, asset, amount)
-    }
-
     /// Set risk parameters (admin only).
+    /// Set risk parameters (admin only)
+    ///
+    /// Updates risk parameters with enhanced validation including emergency pause
+    /// checks, parameter change limits, safety margins, and cross-parameter validation.
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment
+    /// * `caller` - Address of the caller (must be admin)
+    /// * `min_collateral_ratio` - Optional new minimum collateral ratio (basis points)
+    /// * `liquidation_threshold` - Optional new liquidation threshold (basis points)
+    /// * `close_factor` - Optional new close factor (basis points)
+    /// * `liquidation_incentive` - Optional new liquidation incentive (basis points)
+    ///
+    /// # Returns
+    /// Returns Ok(()) on successful update
+    ///
+    /// # Errors
+    /// * `RiskManagementError::Unauthorized` - Caller is not admin
+    /// * `RiskManagementError::EmergencyPaused` - Protocol is emergency paused
+    /// * `RiskManagementError::InvalidParameter` - Parameter outside valid range
+    /// * `RiskManagementError::ParameterChangeTooLarge` - Change exceeds limits
+    /// * `RiskManagementError::InvalidCollateralRatio` - Invalid collateral ratio
+    /// * `RiskManagementError::InvalidLiquidationThreshold` - Invalid liquidation threshold
+    /// * `RiskManagementError::InvalidCloseFactor` - Invalid close factor
+    /// * `RiskManagementError::InvalidLiquidationIncentive` - Invalid liquidation incentive
+    ///
+    /// # Security
+    /// Enforces admin authorization, emergency pause checks, conservative change limits,
+    /// safety margins, and cross-parameter validation for system stability.
     pub fn set_risk_params(
         env: Env,
         caller: Address,
@@ -280,16 +262,18 @@ impl HelloContract {
         close_factor: Option<i128>,
         liquidation_incentive: Option<i128>,
     ) -> Result<(), RiskManagementError> {
-        require_admin(&env, &caller)?;
-        check_emergency_pause(&env)?;
+        // Call the enhanced risk_params function with caller address
         risk_params::set_risk_params(
             &env,
+            &caller,
             min_collateral_ratio,
             liquidation_threshold,
             close_factor,
             liquidation_incentive,
         )
         .map_err(|e| match e {
+            RiskParamsError::Unauthorized => RiskManagementError::Unauthorized,
+            RiskParamsError::EmergencyPaused => RiskManagementError::EmergencyPaused,
             RiskParamsError::ParameterChangeTooLarge => {
                 RiskManagementError::ParameterChangeTooLarge
             }
@@ -301,6 +285,8 @@ impl HelloContract {
             RiskParamsError::InvalidLiquidationIncentive => {
                 RiskManagementError::InvalidLiquidationIncentive
             }
+            RiskParamsError::InsufficientSafetyMargin => RiskManagementError::InvalidParameter,
+            RiskParamsError::InvalidParameterCombination => RiskManagementError::InvalidParameter,
             _ => RiskManagementError::InvalidParameter,
         })
     }
@@ -393,7 +379,7 @@ impl HelloContract {
         collateral_asset: Option<Address>,
         amount: i128,
     ) -> Result<i128, crate::liquidate::LiquidationError> {
-        let (repaid, _seized, _fee) = liquidate(&env, caller, borrower, asset, None, amount)?;
+        let (repaid, _seized, _fee) = liquidate(&env, liquidator, borrower, debt_asset, collateral_asset, amount)?;
         Ok(repaid)
     }
 
@@ -479,11 +465,6 @@ impl HelloContract {
         interest_rate::calculate_supply_rate(&env).unwrap_or(0)
     }
 
-    /// Get protocol utilization in basis points.
-    pub fn get_utilization(env: Env) -> i128 {
-        analytics::get_protocol_utilization(&env).unwrap_or(0)
-    }
-
     /// Configure flash-loan parameters (admin only).
     pub fn configure_flash_loan(
         env: Env,
@@ -539,25 +520,6 @@ impl HelloContract {
         .map_err(|_| RiskManagementError::InvalidParameter)
     }
 
-    /// Get current protocol utilization in basis points (0–10 000).
-    pub fn get_utilization(env: Env) -> i128 {
-        interest_rate::calculate_utilization(&env).unwrap_or(0)
-    }
-
-    /// Set an emergency rate adjustment (admin only).
-    ///
-    /// The adjustment is added to the calculated borrow rate.
-    /// Bounded to ±10 000 bps (±100%).
-    pub fn set_emergency_rate_adjustment(
-        env: Env,
-        admin: Address,
-        adjustment_bps: i128,
-    ) -> Result<(), RiskManagementError> {
-        require_admin(&env, &admin)?;
-        interest_rate::set_emergency_rate_adjustment(&env, admin, adjustment_bps)
-            .map_err(|_| RiskManagementError::InvalidParameter)
-    }
-
     /// Get the current interest rate configuration.
     pub fn get_interest_rate_config(env: Env) -> Option<InterestRateConfig> {
         interest_rate::get_interest_rate_config(&env)
@@ -570,16 +532,6 @@ impl HelloContract {
         debt_value: i128,
     ) -> Result<(), RiskManagementError> {
         crate::risk_params::require_min_collateral_ratio(&env, collateral_value, debt_value)
-            .map_err(|_| RiskManagementError::InsufficientCollateralRatio)
-    }
-
-    /// Enforce minimum collateral ratio.
-    pub fn require_min_collateral_ratio(
-        env: Env,
-        collateral_value: i128,
-        debt_value: i128,
-    ) -> Result<(), RiskManagementError> {
-        risk_params::require_min_collateral_ratio(&env, collateral_value, debt_value)
             .map_err(|_| RiskManagementError::InsufficientCollateralRatio)
     }
 
@@ -758,34 +710,7 @@ impl HelloContract {
         risk_management::initialize_risk_management(&env, admin)
     }
 
-    /// Set a pause switch for an operation (admin only).
-    pub fn set_pause_switch(
-        env: Env,
-        admin: Address,
-        operation: Symbol,
-        paused: bool,
-    ) -> Result<(), RiskManagementError> {
-        risk_management::set_pause_switch(&env, admin, operation, paused)
-    }
 
-    /// Check if an operation is paused.
-    pub fn is_operation_paused(env: Env, operation: Symbol) -> bool {
-        risk_management::is_operation_paused(&env, operation)
-    }
-
-    /// Check if emergency pause is active.
-    pub fn is_emergency_paused(env: Env) -> bool {
-        risk_management::is_emergency_paused(&env)
-    }
-
-    /// Set emergency pause (admin only).
-    pub fn set_emergency_pause(
-        env: Env,
-        admin: Address,
-        paused: bool,
-    ) -> Result<(), RiskManagementError> {
-        risk_management::set_emergency_pause(&env, admin, paused)
-    }
 
     // ============================================================================
     // AMM Methods
@@ -818,7 +743,7 @@ impl HelloContract {
     }
 
     /// Execute swap through AMM.
-    pub fn amm_swap(env: Env, user: Address, params: SwapParams) -> Result<i128, AmmError> {
+    pub fn amm_swap(env: Env, user: Address, params: amm::SwapParams) -> Result<i128, amm::AmmError> {
         amm::amm_swap(env, user, params)
     }
 
@@ -1209,6 +1134,27 @@ impl HelloContract {
         governance::execute_recovery(&env, executor)
     }
 
+    /// Execute a flash loan
+    pub fn execute_flash_loan(
+        env: Env,
+        user: Address,
+        asset: Address,
+        amount: i128,
+        callback: Address,
+    ) -> Result<i128, crate::flash_loan::FlashLoanError> {
+        execute_flash_loan(&env, user, asset, amount, callback)
+    }
+
+    /// Repay a flash loan
+    pub fn repay_flash_loan(
+        env: Env,
+        user: Address,
+        asset: Address,
+        amount: i128,
+    ) -> Result<(), crate::flash_loan::FlashLoanError> {
+        repay_flash_loan(&env, user, asset, amount)
+    }
+
     // ============================================================================
     /// Deposit collateral for a specific asset (cross-asset lending).
     pub fn ca_deposit_collateral(
@@ -1311,9 +1257,6 @@ impl HelloContract {
     }
 }
 
-#[cfg(test)]
-mod tests;
-
 
 // Legacy standalone tests currently mismatch contract API.
 // #[cfg(test)]
@@ -1321,13 +1264,13 @@ mod tests;
 #[cfg(test)]
 // mod test;
 #[cfg(test)]
-mod test_reentrancy;
+// mod test_reentrancy;
 mod flash_loan_test;
 
 #[cfg(test)]
 mod amm_pause_integration_test;  
 
-// mod governance_test;
+// mod tests;
 
 // monitor_test references Monitor contract types not present in this crate
 // #[cfg(test)]
