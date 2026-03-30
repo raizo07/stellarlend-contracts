@@ -77,6 +77,8 @@ jobs:
 
       # Keep the long-term lending target at 88% while scoping out non-lending crates
       # that can be pulled into tarpaulin line accounting in workspace runs.
+      # --src restricts measured files to the lending source tree by absolute path
+      # prefix, which is more reliable than --exclude-files glob matching.
       - name: Generate code coverage
         run: |
           cd stellar-lend
@@ -84,10 +86,7 @@ jobs:
             --manifest-path contracts/lending/Cargo.toml \
             --packages stellarlend-lending \
             --fail-under 88 \
-            --exclude-files "client/**/*" \
-            --exclude-files "contracts/amm/**/*" \
-            --exclude-files "contracts/hello-world/**/*" \
-            --exclude-files "indexing_system/**/*"
+            --src contracts/lending/src
 
       - name: Install cargo-audit
         run: cargo install cargo-audit
