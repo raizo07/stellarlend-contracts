@@ -26,3 +26,27 @@ Refer to `src/lib.rs` for detailed types and events.
 
 - Reentrancy guarantees and Soroban execution-model assumptions are documented in [`REENTRANCY.md`](./REENTRANCY.md).
 
+## Reserve Income Analytics
+
+- Reserve accrual is treated as protocol income.
+- On each reserve accrual, protocol analytics are synchronized so:
+	- `total_value_locked` increases by the accrued reserve amount.
+	- cumulative `protocol_revenue` increases by the same amount.
+- On reserve withdrawal to treasury:
+	- `total_value_locked` decreases by the withdrawn reserve amount.
+	- cumulative `protocol_revenue` is unchanged (it remains historical income).
+
+### Trust Boundaries
+
+- Admin powers:
+	- can set reserve factor (bounded to 0..5000 bps).
+	- can set treasury destination.
+	- can withdraw only accrued reserve balances.
+- Guardian powers are unchanged by reserve analytics and remain in recovery/governance flows.
+
+### Token Transfer and Reentrancy
+
+- Reserve withdrawal follows checks-effects-interactions: storage is updated before external token transfer.
+- External transfers use Soroban token client and remain behind admin authorization.
+- Arithmetic for TVL/revenue synchronization uses checked operations and fails on overflow.
+
