@@ -75,18 +75,23 @@ jobs:
       - name: Install cargo-tarpaulin
         run: cargo install cargo-tarpaulin --locked --version 0.31.0
 
-      # Keep the long-term lending target at 88% while scoping out non-lending crates
-      # that can be pulled into tarpaulin line accounting in workspace runs.
-      # --src restricts measured files to the lending source tree by absolute path
-      # prefix, which is more reliable than --exclude-files glob matching.
+      # Run tarpaulin from the lending package directory (no --manifest-path) so
+      # that tarpaulin discovers the workspace root (stellar-lend/) by traversal
+      # and normalises all file paths relative to that root.  The --exclude-files
+      # globs are then matched against those workspace-relative paths, e.g.
+      # "client/**" correctly matches "client/src/retry.rs".
       - name: Generate code coverage
         run: |
-          cd stellar-lend
+          cd stellar-lend/contracts/lending
           cargo tarpaulin --verbose --out Xml \
-            --manifest-path contracts/lending/Cargo.toml \
             --packages stellarlend-lending \
             --fail-under 88 \
-            --src contracts/lending/src
+            --exclude-files "client/**" \
+            --exclude-files "contracts/common/**" \
+            --exclude-files "contracts/amm/**" \
+            --exclude-files "contracts/bridge/**" \
+            --exclude-files "contracts/hello-world/**" \
+            --exclude-files "indexing_system/**"
 
       - name: Install cargo-audit
         run: cargo install cargo-audit
