@@ -416,7 +416,7 @@ fn test_partial_repayment_multi_asset() {
 #[test]
 fn test_full_repayment_single_asset() {
     let env = Env::default();
-    let (client, admin, user1, _, asset_usdc, asset_eth) = setup_test(&env);
+    let (client, _admin, user1, _, asset_usdc, asset_eth) = setup_test(&env);
 
     setup_multi_asset_config(&env, &client, &asset_usdc, &asset_eth);
 
@@ -759,7 +759,7 @@ fn test_reentrancy_protection() {
 #[test]
 fn test_admin_only_operations() {
     let env = Env::default();
-    let (client, _admin, user1, _, asset_usdc, _) = setup_test(&env);
+    let (client, _admin, _user1, _, asset_usdc, _) = setup_test(&env);
 
     // Only admin should be able to set asset parameters
     let params = create_asset_params(&env, 8000, 8500, 1000000, true);
