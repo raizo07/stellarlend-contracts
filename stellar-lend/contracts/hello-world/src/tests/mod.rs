@@ -61,4 +61,5 @@ pub mod multisig_governance_execution_test;
 pub mod multisig_test;
 pub mod recovery_test;
 pub mod fuzz_test;
+pub mod borrow_test;
 // pub mod fees_test;
