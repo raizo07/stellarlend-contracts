@@ -75,12 +75,12 @@ jobs:
       - name: Install cargo-tarpaulin
         run: cargo install cargo-tarpaulin --locked --version 0.31.0
 
-      # Gate below measured baseline (~83.5%) with slack for toolchain/tarpaulin drift on Linux.
-      # Target 88% over time; raise --fail-under as coverage improves.
+      # Keep the long-term lending target at 88% while scoping out non-lending crates
+      # that can be pulled into tarpaulin line accounting in workspace runs.
       - name: Generate code coverage
         run: |
           cd stellar-lend/contracts/lending
-          cargo tarpaulin --verbose --out Xml --packages stellarlend-lending --fail-under 83 --exclude-files "../../indexing_system/*" ../../indexing_system/*
+          cargo tarpaulin --verbose --out Xml --packages stellarlend-lending --fail-under 88 --exclude-files "../../client/*" "../amm/*" "../hello-world/*" "../../indexing_system/*"
 
       - name: Install cargo-audit
         run: cargo install cargo-audit
