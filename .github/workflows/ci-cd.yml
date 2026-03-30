@@ -79,8 +79,15 @@ jobs:
       # that can be pulled into tarpaulin line accounting in workspace runs.
       - name: Generate code coverage
         run: |
-          cd stellar-lend/contracts/lending
-          cargo tarpaulin --verbose --out Xml --packages stellarlend-lending --fail-under 88 --exclude-files "../../client/*" "../amm/*" "../hello-world/*" "../../indexing_system/*"
+          cd stellar-lend
+          cargo tarpaulin --verbose --out Xml \
+            --manifest-path contracts/lending/Cargo.toml \
+            --packages stellarlend-lending \
+            --fail-under 88 \
+            --exclude-files "client/**/*" \
+            --exclude-files "contracts/amm/**/*" \
+            --exclude-files "contracts/hello-world/**/*" \
+            --exclude-files "indexing_system/**/*"
 
       - name: Install cargo-audit
         run: cargo install cargo-audit
