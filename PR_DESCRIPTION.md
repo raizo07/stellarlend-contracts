@@ -45,10 +45,11 @@ cargo test
 ```
 
 Summarized result for multi-user contention scenarios (`cargo test multi_user_contention_test`):
+
 - Successfully passed `test_contention_interleaved_deposits_borrows` (validated serial mixed-user bounds).
 - Successfully passed `test_contention_edge_cases_zero_amounts_overflow` (validated structured errors on 0 amounts and type bounds).
 - Successfully passed `test_contention_paused_operations` (validated isolation when admin pauses protocol globally).
-All global arithmetic totals (borrows vs collateral deposits) assertions maintained exact parity.
+  All global arithmetic totals (borrows vs collateral deposits) assertions maintained exact parity.
 
 ## Notes
 
@@ -56,3 +57,32 @@ All global arithmetic totals (borrows vs collateral deposits) assertions maintai
 - This change is documentation-only; no Rust modules were materially changed
 - Team review is recommended before merge, especially around the documented AMM auth caveat
 - Re-run `cargo test` after freeing disk space on `C:`
+
+**test(governance): cancel vs execute ordering**
+
+- Added integration tests for proposal cancel/execute race conditions
+- Ensured tests follow contract lifecycle (submit → approve → queue → execute/cancel)
+- Introduced a minimal no-op GenericAction to guarantee deterministic execution
+- Verified:
+  - cancel prevents execution
+  - execution prevents cancellation
+  - approval does not override cancellation
+  - ordering remains deterministic across sequences
+- No contract logic modified
+
+Sequence table:
+
+Step Actor Action Result
+1 A Cancel Success
+2 B Execute Revert
+1 A Execute Success
+2 B Cancel Revert
+
+Security notes:
+
+- State transitions are terminal (`Cancelled`/`Executed`) and mutually exclusive.
+- No double execution — executed proposals are idempotent.
+- Authorization enforced on cancel/execute paths (admin/proposer checks).
+- Ordering cannot produce inconsistent state due to explicit status checks.
+
+All tests passing for the targeted governance suite; full repository test run was executed and noted (some unrelated tests fail in the current workspace state). See test output in CI for full details.
