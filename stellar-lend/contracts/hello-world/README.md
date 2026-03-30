@@ -25,4 +25,5 @@ Refer to `src/lib.rs` for detailed types and events.
 ## Security Notes
 
 - Reentrancy guarantees and Soroban execution-model assumptions are documented in [`REENTRANCY.md`](./REENTRANCY.md).
+- For a protocol-wide summary of reentrancy guarantees, trust boundaries, and external call audit, see [`REENTRANCY_GUARANTEES.md`](../../docs/REENTRANCY_GUARANTEES.md).
 
