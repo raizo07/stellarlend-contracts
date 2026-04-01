@@ -109,7 +109,7 @@ fn test_ms_full_flow_2_of_2() {
     });
 
     env.ledger().with_mut(|li| {
-        li.timestamp += 10 * 24 * 60 * 60;
+        li.timestamp += 5 * 24 * 60 * 60;
     });
     env.as_contract(&cid, || {
         ms_execute(&env, admin, pid).unwrap();
