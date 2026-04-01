@@ -425,6 +425,9 @@ pub(crate) fn validate_collateral_ratio(collateral: i128, borrow: i128) -> Resul
 pub fn get_user_debt(env: &Env, user: &Address) -> DebtPosition {
     let mut position = get_debt_position(env, user);
     let accrued = calculate_interest(env, &position);
+    // Intentional saturating add: We use saturating math here instead of checked_add to prevent 
+    // view queries from trapping in extreme edge cases (like a ledger extremely far into the future).
+    // Trapping on view functions breaks frontend queries and node telemetry.
     position.interest_accrued = position.interest_accrued.saturating_add(accrued);
     position
 }
@@ -478,18 +481,29 @@ pub fn repay(env: &Env, user: Address, asset: Address, amount: i128) -> Result<(
     debt_position.last_update = env.ledger().timestamp();
     let mut remaining_repayment = amount;
     if remaining_repayment >= debt_position.interest_accrued {
-        remaining_repayment -= debt_position.interest_accrued;
+        remaining_repayment = remaining_repayment
+            .checked_sub(debt_position.interest_accrued)
+            .ok_or(BorrowError::Overflow)?;
         debt_position.interest_accrued = 0;
     } else {
-        debt_position.interest_accrued -= remaining_repayment;
+        debt_position.interest_accrued = debt_position
+            .interest_accrued
+            .checked_sub(remaining_repayment)
+            .ok_or(BorrowError::Overflow)?;
         remaining_repayment = 0;
     }
     if remaining_repayment > 0 {
         if remaining_repayment > debt_position.borrowed_amount {
             return Err(BorrowError::RepayAmountTooHigh);
         }
-        debt_position.borrowed_amount -= remaining_repayment;
+        debt_position.borrowed_amount = debt_position
+            .borrowed_amount
+            .checked_sub(remaining_repayment)
+            .ok_or(BorrowError::Overflow)?;
         let total_debt = get_total_debt(env);
+        // Intentional saturating_sub: global total_debt is tracked independently;
+        // avoiding a trap here ensures a user can still repay their local position
+        // even if global metrics fall slightly out of sync.
         let new_total = total_debt.saturating_sub(remaining_repayment);
         set_total_debt(env, new_total);
     }
