@@ -397,8 +397,16 @@ impl HelloContract {
     /// Get a read-only configuration snapshot of the protocol
     ///
     /// # Returns
-    /// Returns Some(ConfigSnapshot) if initialized, None otherwise.
-    /// No authorization required - safe for any caller.
+    /// Returns `Some(ConfigSnapshot)` if the risk parameters are initialized, `None` otherwise.
+    ///
+    /// # Security
+    /// - **Authorization:** None required. Safe to be called by any unauthenticated address.
+    /// - **State Mutation:** Guaranteed to be strictly read-only. Never mutates storage.
+    /// - **Reentrancy:** Safe. Performs no cross-contract calls and only reads local storage.
+    ///
+    /// # Trust Boundaries
+    /// - The snapshot reflects parameters that can only be altered by the protocol `admin` or `guardian` roles.
+    /// - Does not process or authorize any token transfers.
     pub fn get_config_snapshot(env: Env) -> Option<ConfigSnapshot> {
         get_config_snapshot(&env)
     }
