@@ -249,6 +249,8 @@ pub fn borrow_asset(
     asset: Option<Address>,
     amount: i128,
 ) -> Result<i128, BorrowError> {
+    // Formal-verification precondition note:
+    // borrowed amount must be strictly positive.
     // Validate amount
     if amount <= 0 {
         return Err(BorrowError::InvalidAmount);
@@ -324,6 +326,14 @@ pub fn borrow_asset(
     if current_collateral == 0 {
         return Err(BorrowError::InsufficientCollateral);
     }
+
+    // Verification hook snapshot after all reads/accrual and before effects.
+    let fv_snapshot = BorrowSpecSnapshot {
+        principal_before: position.debt,
+        interest_before: position.borrow_interest,
+        collateral_before: current_collateral,
+    };
+    debug_assert!(fv_borrow_preconditions(amount, &position, current_collateral));
 
     // Get asset parameters for collateral factor
     let collateral_factor = if let Some(asset_addr) = asset.as_ref() {
@@ -478,6 +488,17 @@ pub fn borrow_asset(
         .debt
         .checked_add(position.borrow_interest)
         .ok_or(BorrowError::Overflow)?;
+
+    // Formal-verification postcondition note:
+    // principal increases by exactly borrowed amount; collateral store is unchanged by borrow.
+    debug_assert!(fv_borrow_postconditions(
+        &fv_snapshot,
+        &position,
+        amount,
+        total_debt,
+        current_collateral
+    ));
+
     Ok(total_debt)
 }
 
@@ -555,4 +576,45 @@ fn update_protocol_analytics_borrow(env: &Env, amount: i128) -> Result<(), Borro
         .ok_or(BorrowError::Overflow)?;
     env.storage().persistent().set(&analytics_key, &analytics);
     Ok(())
+}
+
+#[cfg(test)]
+mod verification_hooks_tests {
+    use super::*;
+
+    #[test]
+    fn borrow_hooks_accept_valid_transition() {
+        let snapshot = BorrowSpecSnapshot {
+            principal_before: 100,
+            interest_before: 5,
+            collateral_before: 1_000,
+        };
+        let position = Position {
+            collateral: 1_000,
+            debt: 150,
+            borrow_interest: 6,
+            last_accrual_time: 0,
+        };
+
+        assert!(fv_borrow_preconditions(50, &position, 1_000));
+        assert!(fv_borrow_postconditions(&snapshot, &position, 50, 156, 1_000));
+    }
+
+    #[test]
+    fn borrow_hooks_reject_invalid_transition() {
+        let snapshot = BorrowSpecSnapshot {
+            principal_before: 100,
+            interest_before: 5,
+            collateral_before: 1_000,
+        };
+        let position = Position {
+            collateral: 1_000,
+            debt: 149,
+            borrow_interest: 6,
+            last_accrual_time: 0,
+        };
+
+        assert!(!fv_borrow_preconditions(0, &position, 1_000));
+        assert!(!fv_borrow_postconditions(&snapshot, &position, 50, 155, 999));
+    }
 }
