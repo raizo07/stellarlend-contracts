@@ -29,7 +29,7 @@ use crate::reserve::{
     withdraw_reserve_funds, ReserveError, BASIS_POINTS_SCALE, DEFAULT_RESERVE_FACTOR_BPS,
     MAX_RESERVE_FACTOR_BPS,
 };
-use soroban_sdk::{testutils::Address as _, Address, Env};
+use soroban_sdk::{testutils::Address as _, Address, Env, Vec};
 
 /// Helper function to create a test environment with an admin
 fn setup_test_env() -> (Env, Address, Address, Address, Address) {
@@ -257,7 +257,7 @@ fn test_set_reserve_factor_by_admin() {
 #[test]
 #[should_panic(expected = "HostError: Error(Auth, InvalidAction(0))")]
 fn test_set_reserve_factor_by_non_admin() {
-    let (env, contract_id, _admin, user, _treasury) = setup_test_env();
+    let (env, contract_id, _, user, _) = setup_test_env();
     let asset = Some(Address::generate(&env));
 
     // Initialize first
@@ -275,7 +275,7 @@ fn test_set_reserve_factor_by_non_admin() {
 
 #[test]
 fn test_set_reserve_factor_exceeds_max() {
-    let (env, contract_id, admin, _user, _treasury) = setup_test_env();
+    let (env, contract_id, admin, _, _) = setup_test_env();
     let asset = Some(Address::generate(&env));
 
     // Initialize first
@@ -295,7 +295,7 @@ fn test_set_reserve_factor_exceeds_max() {
 
 #[test]
 fn test_set_reserve_factor_to_zero() {
-    let (env, contract_id, admin, _user, _treasury) = setup_test_env();
+    let (env, contract_id, admin, _, _) = setup_test_env();
     let asset = Some(Address::generate(&env));
 
     // Initialize first
@@ -506,7 +506,7 @@ fn test_set_treasury_address_by_admin() {
 #[test]
 #[should_panic(expected = "HostError: Error(Auth, InvalidAction(0))")]
 fn test_set_treasury_address_by_non_admin() {
-    let (env, contract_id, _admin, user, _treasury) = setup_test_env();
+    let (env, contract_id, _admin, user, treasury) = setup_test_env();
 
     // Non-admin tries to set treasury address - should fail
     let _ = test_set_treasury_address(&env, &contract_id, user, _treasury);
@@ -1387,7 +1387,7 @@ fn test_reserve_factor_formula_precision() {
         // Initialize with specific factor
         test_initialize_reserve_config(&env, &contract_id, asset.clone(), *factor).unwrap();
 
-        let (r, _l) = test_accrue_reserve(&env, &contract_id, asset.clone(), *interest).unwrap();
+        let (r, l) = test_accrue_reserve(&env, &contract_id, asset.clone(), *interest).unwrap();
 
         assert_eq!(
             r, *expected_reserve,

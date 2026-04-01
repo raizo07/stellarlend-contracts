@@ -71,6 +71,7 @@ use repay::repay_debt;
 
 use risk_management::{
     check_emergency_pause, initialize_risk_management, is_emergency_paused, is_operation_paused,
+    set_pause_switch, set_pause_switches,
 };
 
 use crate::config_snapshot::{get_config_snapshot, ConfigSnapshot};
@@ -85,7 +86,7 @@ use crate::analytics::{
     generate_protocol_report, generate_user_report, get_recent_activity, get_user_activity_feed,
     AnalyticsError, ProtocolReport, UserReport,
 };
-use crate::bridge::{BridgeConfig, BridgeError};
+
 use crate::config::{config_backup, config_get, config_restore, config_set, ConfigError};
 use crate::config_snapshot::{get_config_snapshot, ConfigSnapshot};
 use crate::cross_asset::{
@@ -551,7 +552,7 @@ impl HelloContract {
         env: Env,
         caller: Address,
         asset: Option<Address>,
-        _to: Address,
+        to: Address,
         amount: i128,
     ) -> Result<(), RiskManagementError> {
         require_admin(&env, &caller)?;

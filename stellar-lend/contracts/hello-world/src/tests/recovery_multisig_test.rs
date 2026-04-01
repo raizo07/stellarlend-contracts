@@ -289,7 +289,7 @@ fn test_set_multisig_admins_success() {
         new_admins.push_back(new_admin1.clone());
         new_admins.push_back(new_admin2.clone());
 
-        set_multisig_admins(&env, admin, new_admins).unwrap();
+        set_multisig_admins(&env, admin, new_admins, 2).unwrap();
 
         let stored_admins = get_multisig_admins(&env).unwrap();
         assert_eq!(stored_admins.len(), 2);
@@ -304,7 +304,7 @@ fn test_set_multisig_admins_empty() {
 
     with_contract!(env, &cid, {
         let empty_admins = Vec::new(&env);
-        let result = set_multisig_admins(&env, admin, empty_admins);
+        let result = set_multisig_admins(&env, admin, empty_admins, 2);
         assert_eq!(result, Err(GovernanceError::InvalidMultisigConfig));
     });
 }
@@ -319,7 +319,7 @@ fn test_set_multisig_threshold_success() {
         for _ in 0..2 {
             admins.push_back(Address::generate(&env));
         }
-        set_multisig_admins(&env, admin.clone(), admins).unwrap();
+        set_multisig_admins(&env, admin.clone(), admins, 2).unwrap();
         set_multisig_threshold(&env, admin, 2).unwrap();
         assert_eq!(get_multisig_threshold(&env), 2);
     });
@@ -390,7 +390,7 @@ fn test_approve_proposal_success() {
         let mut admins = Vec::new(&env);
         admins.push_back(admin.clone());
         admins.push_back(admin2.clone());
-        set_multisig_admins(&env, admin.clone(), admins).unwrap();
+        set_multisig_admins(&env, admin.clone(), admins, 2).unwrap();
 
         let proposal_id = propose_set_min_collateral_ratio(&env, admin, 12_000).unwrap();
         approve_proposal(&env, admin2.clone(), proposal_id).unwrap();
@@ -423,7 +423,7 @@ fn test_execute_multisig_proposal_success() {
         let mut admins = Vec::new(&env);
         admins.push_back(admin.clone());
         admins.push_back(admin2.clone());
-        set_multisig_admins(&env, admin.clone(), admins).unwrap();
+        set_multisig_admins(&env, admin.clone(), admins, 2).unwrap();
         set_multisig_threshold(&env, admin.clone(), 2).unwrap();
 
         let proposal_id = propose_set_min_collateral_ratio(&env, admin.clone(), 12_000).unwrap();
@@ -453,7 +453,7 @@ fn test_execute_multisig_proposal_insufficient_approvals() {
         admins.push_back(admin.clone());
         admins.push_back(admin2.clone());
         admins.push_back(admin3);
-        set_multisig_admins(&env, admin.clone(), admins).unwrap();
+        set_multisig_admins(&env, admin.clone(), admins, 2).unwrap();
         set_multisig_threshold(&env, admin.clone(), 3).unwrap();
 
         let proposal_id = propose_set_min_collateral_ratio(&env, admin.clone(), 12_000).unwrap();
@@ -497,7 +497,7 @@ fn test_full_multisig_flow_3_of_5() {
         admins.push_back(admin3.clone());
         admins.push_back(admin4);
         admins.push_back(admin5);
-        set_multisig_admins(&env, admin1.clone(), admins).unwrap();
+        set_multisig_admins(&env, admin1.clone(), admins, 2).unwrap();
         set_multisig_threshold(&env, admin1.clone(), 3).unwrap();
 
         let proposal_id = propose_set_min_collateral_ratio(&env, admin1.clone(), 12_000).unwrap();
@@ -530,7 +530,7 @@ fn test_admin_rotation() {
         let mut new_admins = Vec::new(&env);
         new_admins.push_back(new_admin1.clone());
         new_admins.push_back(new_admin2.clone());
-        set_multisig_admins(&env, old_admin.clone(), new_admins).unwrap();
+        set_multisig_admins(&env, old_admin.clone(), new_admins, 2).unwrap();
 
         let stored_admins = get_multisig_admins(&env).unwrap();
         assert!(stored_admins.contains(new_admin1.clone()));

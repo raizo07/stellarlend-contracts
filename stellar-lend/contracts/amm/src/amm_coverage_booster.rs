@@ -1,4 +1,3 @@
-#![cfg(test)]
 use crate::{AmmContract, AmmContractClient, AmmProtocolConfig, AmmSettings};
 use soroban_sdk::{testutils::Address as _, Address, Env};
 
