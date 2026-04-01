@@ -95,10 +95,7 @@ impl UpgradeProposal {
     /// # Security
     /// Consumers should prefer this conversion instead of reconstructing status fields manually so
     /// approval thresholds and stage invariants are checked consistently across crates.
-    pub fn try_into_status(
-        &self,
-        required_approvals: u32,
-    ) -> Result<UpgradeStatus, UpgradeError> {
+    pub fn try_into_status(&self, required_approvals: u32) -> Result<UpgradeStatus, UpgradeError> {
         validate_required_approvals(required_approvals)?;
         let approval_count = checked_approval_count(&self.approvals)?;
         validate_stage_invariants(self, approval_count, required_approvals)?;
@@ -145,7 +142,6 @@ enum UpgradeKey {
     UpCurrVersion,
     UpProposal(u64),
 }
-
 
 pub struct UpgradeManager;
 
@@ -519,7 +515,7 @@ impl UpgradeManager {
             .storage()
             .persistent()
             .get(&UpgradeKey::UpAdmin)
-            .unwrap_or_else(|| panic_with_error!(&env, UpgradeError::NotInitialized));
+            .unwrap();
         if *caller != admin {
             panic_with_error!(env, UpgradeError::NotAuthorized);
         }

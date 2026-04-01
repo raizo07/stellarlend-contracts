@@ -1,3 +1,5 @@
+#![cfg(not(tarpaulin_include))]
+#![allow(unexpected_cfgs)]
 //! Reentrancy protection for same-transaction nested calls.
 //!
 //! Soroban executes contract invocations synchronously within a single invocation tree. A
@@ -11,7 +13,7 @@
 #![cfg(not(tarpaulin_include))]
 #![allow(unexpected_cfgs)]
 
-use soroban_sdk::{contracttype, Env};
+use soroban_sdk::{contracttype, Env, Symbol};
 
 /// Standardized error code used by operation-specific error enums for reentrancy rejection.
 pub const REENTRANCY_ERROR_CODE: u32 = 7;
