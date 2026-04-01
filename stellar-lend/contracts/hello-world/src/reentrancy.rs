@@ -1,3 +1,5 @@
+#![cfg(not(tarpaulin_include))]
+#![allow(unexpected_cfgs)]
 //! Reentrancy protection for same-transaction nested calls.
 //!
 //! Soroban executes contract invocations synchronously within a single invocation tree. A

@@ -25,8 +25,8 @@ fn default_config(env: &Env) -> AssetConfig {
         collateral_factor: 7500,       // 75% LTV
         liquidation_threshold: 8000,   // 80%
         reserve_factor: 1000,          // 10%
-        max_supply: 10_000_000_000_000, // 1M (7 decimals)
-        max_borrow: 5_000_000_000_000,   // 500K
+        max_supply: 1_000_000_0000000, // 1M (7 decimals)
+        max_borrow: 500_000_0000000,   // 500K
         can_collateralize: true,
         can_borrow: true,
         price: 10_000_000, // $1.00 (7 decimals)
@@ -41,8 +41,8 @@ fn token_config(env: &Env, addr: &Address) -> AssetConfig {
         collateral_factor: 6000,     // 60% LTV
         liquidation_threshold: 7000, // 70%
         reserve_factor: 2000,        // 20%
-        max_supply: 5_000_000_000_000,
-        max_borrow: 2_500_000_000_000,
+        max_supply: 500_000_0000000,
+        max_borrow: 250_000_0000000,
         can_collateralize: true,
         can_borrow: true,
         price: 20_000_000, // $2.00

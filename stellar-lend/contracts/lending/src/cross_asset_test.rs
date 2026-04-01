@@ -60,8 +60,6 @@
 //! cargo test cross_asset_test --lib
 //! ```
 
-#![cfg(test)]
-
 use super::*;
 use soroban_sdk::testutils::Address as _;
 use soroban_sdk::{Address, Env};
@@ -147,7 +145,9 @@ fn test_set_asset_params_success() {
 #[test]
 fn test_set_asset_params_multiple_assets() {
     let env = Env::default();
-    let (client, admin, _, _, asset_usdc, asset_eth) = setup_test(&env);
+    let (client, _admin, _, _, asset_usdc, asset_eth) = setup_test(&env);
+
+    setup_multi_asset_config(&env, &client, &_admin, &asset_usdc, &asset_eth);
 
     setup_multi_asset_config(&env, &client, &admin, &asset_usdc, &asset_eth);
 

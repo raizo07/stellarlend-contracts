@@ -385,6 +385,8 @@ mod amm_coverage_booster;
 #[cfg(all(test, feature = "liquidate_integration"))]
 mod liquidate_test;
 #[cfg(test)]
+mod integration_test;
+#[cfg(test)]
 mod math_safety_test;
 #[cfg(test)]
 mod test;

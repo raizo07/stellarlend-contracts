@@ -102,9 +102,9 @@ fn calculate_accrued_debt(env: &Env, position: &Position) -> Result<i128, Liquid
         return Ok(stored_interest);
     }
     if current_time <= position.last_accrual_time {
-        return principal
+        return Ok(principal
             .checked_add(stored_interest)
-            .ok_or(LiquidationError::Overflow);
+            .ok_or(LiquidationError::Overflow)?);
     }
 
     let rate_bps =
@@ -323,7 +323,7 @@ pub fn liquidate(
         LiquidationEvent {
             liquidator: liquidator.clone(),
             borrower: borrower.clone(),
-            debt_asset: debt_asset.clone(),
+            debt_asset,
             collateral_asset,
             debt_liquidated: actual_debt_liquidated,
             collateral_seized,
