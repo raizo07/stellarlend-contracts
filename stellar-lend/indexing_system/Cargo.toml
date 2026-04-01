@@ -13,10 +13,7 @@ ethers = { version = "2.0", default-features = false, features = ["ws", "rustls"
 alloy-primitives = "0.7"
 
 # Database
-# Using specific features to avoid sqlx-mysql and its vulnerable RSA dependency
-sqlx = { version = "0.8.2", default-features = false, features = ["runtime-tokio-rustls", "postgres", "migrate", "chrono", "uuid", "macros"] }
-# Also add sqlx-macros directly with limited features to help consolidation
-sqlx-macros = { version = "0.8.2", default-features = false, features = ["postgres"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "macros", "migrate", "chrono", "uuid"] }
 redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }
 
 # Serialization
@@ -50,7 +47,8 @@ mockall = "0.12"
 testcontainers = "0.15"
 tokio-test = "0.4"
 
-
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin)', 'cfg(tarpaulin_include)'] }
 
 [lib]
 name = "data_indexing_caching"

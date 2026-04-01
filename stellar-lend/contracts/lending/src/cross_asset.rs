@@ -17,9 +17,11 @@
 //! with borrowing capacity calculated across all deposited collateral.
 //!
 //! ### Unified Health Factor
-//! The protocol calculates a single health factor across all assets.
-//! It is computed as: (Weighted Collateral Value / Total Debt Value) * 10000
-//! Where Weighted Collateral Value = Sum of (Collateral Amount × Price × LTV) for all assets
+//! The protocol calculates a single health factor across all assets:
+//! ```text
+//! Health Factor = (Weighted Collateral Value / Total Debt Value) * 10000
+//! ```
+//! Where Weighted Collateral Value = Sum of (Collateral Amount Ã— Price Ã— LTV) for all assets
 //!
 //! ### Asset Configuration
 //! Each asset has configurable parameters:
@@ -159,6 +161,7 @@ pub fn deposit_collateral_asset(
     if amount <= 0 {
         return Err(CrossAssetError::InvalidAmount);
     }
+
     let params = get_asset_params(env, &asset)?;
     if !params.is_active {
         return Err(CrossAssetError::AssetNotSupported);
