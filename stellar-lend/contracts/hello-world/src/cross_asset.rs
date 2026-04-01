@@ -287,6 +287,18 @@ const TOTAL_BORROWS: Symbol = symbol_short!("borrows");
 /// Storage key for the global list of registered assets: `Vec<AssetKey>`.
 const ASSET_LIST: Symbol = symbol_short!("assets");
 
+/// Maximum number of registered assets iterated in a single position summary call.
+///
+/// Bounds the computational work (CPU instructions + memory) in
+/// `get_user_position_summary` so that a contract with many registered assets
+/// cannot exhaust the Soroban resource budget in a single invocation.
+///
+/// # Security
+/// Without this cap, an admin could register enough assets to make the summary
+/// function permanently unusable by any user. 64 assets is conservative; the
+/// realistic upper bound for a lending protocol is far lower.
+pub const MAX_ASSETS_PER_SUMMARY: u32 = 64;
+
 /// Price staleness threshold in seconds (1 hour).
 const PRICE_STALENESS_THRESHOLD: u64 = 3600;
 
@@ -920,9 +932,10 @@ pub fn get_user_asset_position(env: &Env, user: &Address, asset: Option<Address>
 
 /// Calculate a unified position summary across all registered assets.
 ///
-/// Iterates over all configured assets, aggregates collateral and debt values
-/// weighted by their respective factors, and computes the health factor.
-/// Prices older than 1 hour are rejected for any asset with a non-zero position.
+/// Iterates over up to [`MAX_ASSETS_PER_SUMMARY`] configured assets, aggregates
+/// collateral and debt values weighted by their respective factors, and computes
+/// the health factor. Prices older than 1 hour are rejected for any asset with
+/// a non-zero position.
 ///
 /// # Arguments
 /// * `env` — The contract environment
@@ -938,6 +951,11 @@ pub fn get_user_asset_position(env: &Env, user: &Address, asset: Option<Address>
 /// # Security
 /// * Read-only — does not mutate state.
 /// * Rejects stale prices to prevent stale-price manipulation attacks.
+/// * Iteration is capped at [`MAX_ASSETS_PER_SUMMARY`] (64) to bound CPU and
+///   memory usage per transaction. If more assets are registered only the first
+///   64 are considered; the summary may be partial in that case. This cap
+///   prevents a DoS vector where a large asset registry exhausts the Soroban
+///   per-transaction resource budget for every user who calls this function.
 pub fn get_user_position_summary(
     env: &Env,
     user: &Address,
@@ -959,7 +977,17 @@ pub fn get_user_position_summary(
     let mut total_debt_value: i128 = 0;
     let mut weighted_debt_value: i128 = 0;
 
-    for i in 0..asset_list.len() {
+    // #530: Bound the iteration so that large asset registries cannot exhaust
+    // Soroban's per-transaction CPU/memory budget.
+    //
+    // # Security
+    // If more assets than MAX_ASSETS_PER_SUMMARY are registered, only the first
+    // MAX_ASSETS_PER_SUMMARY are considered. Callers should be aware that the
+    // summary may be partial when the registry is at capacity. This is a
+    // deliberate trade-off between completeness and DoS-resistance.
+    let asset_count = asset_list.len().min(MAX_ASSETS_PER_SUMMARY);
+
+    for i in 0..asset_count {
         let asset_key = asset_list.get(i).unwrap();
 
         if let Some(config) = configs.get(asset_key.clone()) {
@@ -1119,7 +1147,17 @@ fn user_has_any_debt(env: &Env, user: &Address) -> bool {
         .get(&ASSET_LIST)
         .unwrap_or(Vec::new(env));
 
-    for i in 0..asset_list.len() {
+    // #530: Bound the iteration so that large asset registries cannot exhaust
+    // Soroban's per-transaction CPU/memory budget.
+    //
+    // # Security
+    // If more assets than MAX_ASSETS_PER_SUMMARY are registered, only the first
+    // MAX_ASSETS_PER_SUMMARY are considered. Callers should be aware that the
+    // summary may be partial when the registry is at capacity. This is a
+    // deliberate trade-off between completeness and DoS-resistance.
+    let asset_count = asset_list.len().min(MAX_ASSETS_PER_SUMMARY);
+
+    for i in 0..asset_count {
         let asset_key = asset_list.get(i).unwrap();
         let position = get_user_asset_position(env, user, asset_key.to_option());
         if position.debt_principal > 0 || position.accrued_interest > 0 {
