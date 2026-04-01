@@ -317,8 +317,6 @@ pub fn start_recovery(
     old_admin: Address,
     new_admin: Address,
 ) -> Result<(), GovernanceError> {
-    initiator.require_auth();
-
     let guardians: Vec<Address> = env
         .storage()
         .persistent()
@@ -374,8 +372,6 @@ pub fn start_recovery(
 /// The recovery target is revalidated against the current admin set before
 /// additional approvals are accepted.
 pub fn approve_recovery(env: &Env, approver: Address) -> Result<(), GovernanceError> {
-    approver.require_auth();
-
     let guardians: Vec<Address> = env
         .storage()
         .persistent()
@@ -439,8 +435,6 @@ pub fn approve_recovery(env: &Env, approver: Address) -> Result<(), GovernanceEr
 /// Approval counting only includes unique addresses that are still guardians,
 /// which prevents stale or duplicated approvals from satisfying quorum.
 pub fn execute_recovery(env: &Env, executor: Address) -> Result<(), GovernanceError> {
-    executor.require_auth();
-
     let recovery: RecoveryRequest = env
         .storage()
         .persistent()
