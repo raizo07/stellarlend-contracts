@@ -83,6 +83,9 @@ pub struct AssetConfig {
     pub can_collateralize: bool,
     /// Whether the asset can be borrowed.
     pub can_borrow: bool,
+    /// Borrow factor in basis points (e.g., 8000 = 80%).
+    /// Weights the debt value in health calculations.
+    pub borrow_factor: i128,
     /// Asset price in base units, normalized to 7 decimals.
     /// E.g., $1.00 = 10_000_000.
     pub price: i128,
@@ -205,6 +208,7 @@ pub struct AssetConfigUpdatedEvent {
     pub asset: Option<Address>,
     pub collateral_factor: i128,
     pub liquidation_threshold: i128,
+    pub borrow_factor: i128,
     pub timestamp: u64,
 }
 
@@ -266,8 +270,7 @@ pub struct CrossAssetRepayEvent {
 // Storage Keys
 // ============================================================================
 
-/// Admin address authorized for protocol management.
-const ADMIN: Symbol = symbol_short!("admin");
+
 
 /// Storage key for the map of asset configurations: `Map<AssetKey, AssetConfig>`.
 const ASSET_CONFIGS: Symbol = symbol_short!("configs");
@@ -300,27 +303,17 @@ const HEALTH_FACTOR_PRECISION: i128 = 10_000;
 // Admin Initialization
 // ============================================================================
 
-/// Initialize the cross-asset lending module admin.
-///
-/// Sets the admin address. Can only be called once; subsequent calls return
-/// `AlreadyInitialized`.
-///
-/// # Arguments
-/// * `env` — The contract environment
-/// * `admin` — The admin address (must authorize the transaction)
-///
-/// # Errors
-/// * `AlreadyInitialized` — Admin is already set
-///
-/// # Security
-/// * Only callable once. The admin address is immutable within this module.
 pub fn initialize(env: &Env, admin: Address) -> Result<(), CrossAssetError> {
-    if env.storage().persistent().has(&ADMIN) {
+    if crate::admin::has_admin(env) {
+        let existing_admin = crate::admin::get_admin(env).unwrap();
+        if existing_admin == admin {
+            return Ok(()); // Already initialized with the same admin
+        }
         return Err(CrossAssetError::AlreadyInitialized);
     }
 
     admin.require_auth();
-    env.storage().persistent().set(&ADMIN, &admin);
+    crate::admin::set_admin(env, admin).unwrap();
 
     Ok(())
 }
@@ -330,10 +323,7 @@ pub fn initialize(env: &Env, admin: Address) -> Result<(), CrossAssetError> {
 /// # Errors
 /// * `NotAuthorized` — No admin set or caller is not admin.
 fn require_admin(env: &Env) -> Result<(), CrossAssetError> {
-    let admin: Address = env
-        .storage()
-        .persistent()
-        .get(&ADMIN)
+    let admin: Address = crate::admin::get_admin(env)
         .ok_or(CrossAssetError::NotAuthorized)?;
 
     admin.require_auth();
@@ -455,6 +445,7 @@ pub fn update_asset_config(
     max_borrow: Option<i128>,
     can_collateralize: Option<bool>,
     can_borrow: Option<bool>,
+    borrow_factor: Option<i128>,
 ) -> Result<(), CrossAssetError> {
     require_admin(env)?;
 
@@ -479,11 +470,15 @@ pub fn update_asset_config(
     if let Some(cb) = can_borrow {
         config.can_borrow = cb;
     }
+    if let Some(bf) = borrow_factor {
+        config.borrow_factor = bf;
+    }
 
     // Validate the *resulting* config holistically
     require_valid_basis_points(config.collateral_factor)?;
     require_valid_basis_points(config.liquidation_threshold)?;
     require_valid_basis_points(config.reserve_factor)?;
+    require_valid_basis_points(config.borrow_factor)?;
 
     if config.liquidation_threshold < config.collateral_factor {
         return Err(CrossAssetError::InvalidConfig);
@@ -504,6 +499,7 @@ pub fn update_asset_config(
         asset,
         collateral_factor: config.collateral_factor,
         liquidation_threshold: config.liquidation_threshold,
+        borrow_factor: config.borrow_factor,
         timestamp: env.ledger().timestamp(),
     }
     .publish(env);
@@ -1001,7 +997,10 @@ pub fn get_user_position_summary(
                 .checked_div(PRICE_PRECISION)
                 .ok_or(CrossAssetError::Overflow)?;
             total_debt_value = checked_add(total_debt_value, debt_value)?;
-            weighted_debt_value = checked_add(weighted_debt_value, debt_value)?;
+            let weighted_debt = checked_mul(debt_value, config.borrow_factor)?
+                .checked_div(BPS_DENOMINATOR)
+                .ok_or(CrossAssetError::Overflow)?;
+            weighted_debt_value = checked_add(weighted_debt_value, weighted_debt)?;
         }
     }
 
@@ -1212,7 +1211,11 @@ fn get_total_supply(env: &Env, asset_key: &AssetKey) -> i128 {
     supplies.get(asset_key.clone()).unwrap_or(0)
 }
 
-fn update_total_supply(env: &Env, asset_key: &AssetKey, delta: i128) -> Result<(), CrossAssetError> {
+fn update_total_supply(
+    env: &Env,
+    asset_key: &AssetKey,
+    delta: i128,
+) -> Result<(), CrossAssetError> {
     let mut supplies: Map<AssetKey, i128> = env
         .storage()
         .persistent()
@@ -1240,7 +1243,11 @@ fn get_total_borrow(env: &Env, asset_key: &AssetKey) -> i128 {
     borrows.get(asset_key.clone()).unwrap_or(0)
 }
 
-fn update_total_borrow(env: &Env, asset_key: &AssetKey, delta: i128) -> Result<(), CrossAssetError> {
+fn update_total_borrow(
+    env: &Env,
+    asset_key: &AssetKey,
+    delta: i128,
+) -> Result<(), CrossAssetError> {
     let mut borrows: Map<AssetKey, i128> = env
         .storage()
         .persistent()
