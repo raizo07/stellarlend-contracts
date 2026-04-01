@@ -201,14 +201,14 @@ fn get_debt_ceiling(env: &Env) -> i128 {
         .unwrap_or(i128::MAX)
 }
 
-fn get_total_debt(env: &Env) -> i128 {
+pub(crate) fn get_total_debt(env: &Env) -> i128 {
     env.storage()
         .instance()
         .get(&BorrowDataKey::BorrowTotalDebt)
         .unwrap_or(0)
 }
 
-fn set_total_debt(env: &Env, amount: i128) {
+pub(crate) fn set_total_debt(env: &Env, amount: i128) {
     env.storage()
         .instance()
         .set(&BorrowDataKey::BorrowTotalDebt, &amount);
@@ -324,7 +324,7 @@ pub fn set_liquidation_incentive_bps(
 // USER DATA: Persistent Storage (Remains for data scaling)
 // ═══════════════════════════════════════════════════════════════════
 
-fn get_debt_position(env: &Env, user: &Address) -> DebtPosition {
+pub(crate) fn get_debt_position(env: &Env, user: &Address) -> DebtPosition {
     env.storage()
         .persistent()
         .get(&BorrowDataKey::BorrowUserDebt(user.clone()))
@@ -336,13 +336,13 @@ fn get_debt_position(env: &Env, user: &Address) -> DebtPosition {
         })
 }
 
-fn save_debt_position(env: &Env, user: &Address, position: &DebtPosition) {
+pub(crate) fn save_debt_position(env: &Env, user: &Address, position: &DebtPosition) {
     env.storage()
         .persistent()
         .set(&BorrowDataKey::BorrowUserDebt(user.clone()), position);
 }
 
-fn get_collateral_position(env: &Env, user: &Address) -> BorrowCollateral {
+pub(crate) fn get_collateral_position(env: &Env, user: &Address) -> BorrowCollateral {
     env.storage()
         .persistent()
         .get(&BorrowDataKey::BorrowUserCollateral(user.clone()))
@@ -352,7 +352,7 @@ fn get_collateral_position(env: &Env, user: &Address) -> BorrowCollateral {
         })
 }
 
-fn save_collateral_position(env: &Env, user: &Address, position: &BorrowCollateral) {
+pub(crate) fn save_collateral_position(env: &Env, user: &Address, position: &BorrowCollateral) {
     env.storage()
         .persistent()
         .set(&BorrowDataKey::BorrowUserCollateral(user.clone()), position);

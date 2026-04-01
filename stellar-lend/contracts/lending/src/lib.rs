@@ -8,6 +8,7 @@ mod constants;
 mod cross_asset;
 mod deposit;
 mod flash_loan;
+mod liquidate;
 mod oracle;
 mod pause;
 mod token_receiver;
@@ -261,8 +262,7 @@ impl LendingContract {
         deposit_impl(&env, user, asset, amount)
     }
 
-    /// Liquidate a position [Issue #391 - Profiling Enabled]
-    #[cfg(not(tarpaulin_include))]
+    /// Liquidate a position
     pub fn liquidate(
         env: Env,
         liquidator: Address,
