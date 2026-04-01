@@ -91,6 +91,8 @@ mod token_receiver_test;
 mod views_test;
 
 #[cfg(test)]
+mod constants_test;
+#[cfg(test)]
 mod data_store_test;
 #[cfg(test)]
 mod math_safety_test;
