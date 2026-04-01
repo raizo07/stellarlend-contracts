@@ -225,6 +225,15 @@ pub fn remove_guardian(
     require_multisig_admin(env, &caller)?;
     ensure_no_active_recovery(env)?;
 
+    // Check if recovery is in progress - prevent guardian removal during recovery
+    if env
+        .storage()
+        .persistent()
+        .has(&GovernanceDataKey::RecoveryRequest)
+    {
+        return Err(GovernanceError::RecoveryInProgress);
+    }
+
     let guardians: Vec<Address> = env
         .storage()
         .persistent()
@@ -281,6 +290,15 @@ pub fn set_guardian_threshold(
 ) -> Result<(), GovernanceError> {
     require_multisig_admin(env, &caller)?;
     ensure_no_active_recovery(env)?;
+
+    // Check if recovery is in progress - prevent threshold changes during recovery
+    if env
+        .storage()
+        .persistent()
+        .has(&GovernanceDataKey::RecoveryRequest)
+    {
+        return Err(GovernanceError::RecoveryInProgress);
+    }
 
     let guardians: Vec<Address> = env
         .storage()
