@@ -21,7 +21,7 @@
 //! ```text
 //! Health Factor = (Weighted Collateral Value / Total Debt Value) * 10000
 //! ```
-//! Where Weighted Collateral Value = Sum of (Collateral Amount × Price × LTV) for all assets
+//! Where Weighted Collateral Value = Sum of (Collateral Amount Ã— Price Ã— LTV) for all assets
 //!
 //! ### Asset Configuration
 //! Each asset has configurable parameters:

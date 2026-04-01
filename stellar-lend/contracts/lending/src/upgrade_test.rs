@@ -146,6 +146,48 @@ fn test_upgrade_rollback_restores_previous() {
 }
 
 #[test]
+fn test_upgrade_rollback_requires_executed_stage() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, admin) = setup(&env, 1);
+
+    let proposal_id = client.upgrade_propose(&admin, &hash(&env, 6), &1);
+    assert_eq!(
+        client.upgrade_status(&proposal_id).stage,
+        UpgradeStage::Approved
+    );
+
+    assert_contract_error(
+        client.try_upgrade_rollback(&admin, &proposal_id),
+        UpgradeError::InvalidStatus,
+    );
+}
+
+#[test]
+fn test_upgrade_execute_missing_proposal_errors() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, admin) = setup(&env, 1);
+
+    assert_contract_error(
+        client.try_upgrade_execute(&admin, &77),
+        UpgradeError::ProposalNotFound,
+    );
+}
+
+#[test]
+fn test_upgrade_rollback_missing_proposal_errors() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, admin) = setup(&env, 1);
+
+    assert_contract_error(
+        client.try_upgrade_rollback(&admin, &88),
+        UpgradeError::ProposalNotFound,
+    );
+}
+
+#[test]
 fn test_upgrade_status_missing_proposal_errors() {
     let env = Env::default();
     env.mock_all_auths();

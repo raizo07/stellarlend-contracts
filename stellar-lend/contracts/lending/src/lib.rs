@@ -342,9 +342,9 @@ impl LendingContract {
         get_borrow_collateral(&env, &user)
     }
 
-    // ═══════════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // View functions (read-only; for frontends and liquidations)
-    // ═══════════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     /// Returns the user's collateral balance (raw amount).
     pub fn get_collateral_balance(env: Env, user: Address) -> i128 {
@@ -384,8 +384,8 @@ impl LendingContract {
     /// Configure oracle staleness parameters (admin only).
     ///
     /// # Errors
-    /// - `OracleError::Unauthorized` — caller is not the protocol admin.
-    /// - `OracleError::InvalidPrice` — `max_staleness_seconds` is zero.
+    /// - `OracleError::Unauthorized` â€” caller is not the protocol admin.
+    /// - `OracleError::InvalidPrice` â€” `max_staleness_seconds` is zero.
     pub fn configure_oracle(
         env: Env,
         caller: Address,
@@ -397,8 +397,8 @@ impl LendingContract {
     /// Register the primary oracle address for `asset` (admin only).
     ///
     /// # Errors
-    /// - `OracleError::Unauthorized` — caller is not the protocol admin.
-    /// - `OracleError::InvalidOracle` — oracle address is the contract itself.
+    /// - `OracleError::Unauthorized` â€” caller is not the protocol admin.
+    /// - `OracleError::InvalidOracle` â€” oracle address is the contract itself.
     pub fn set_primary_oracle(
         env: Env,
         caller: Address,
@@ -411,8 +411,8 @@ impl LendingContract {
     /// Register the fallback oracle address for `asset` (admin only).
     ///
     /// # Errors
-    /// - `OracleError::Unauthorized` — caller is not the protocol admin.
-    /// - `OracleError::InvalidOracle` — oracle address is the contract itself.
+    /// - `OracleError::Unauthorized` â€” caller is not the protocol admin.
+    /// - `OracleError::InvalidOracle` â€” oracle address is the contract itself.
     pub fn set_fallback_oracle(
         env: Env,
         caller: Address,
@@ -428,9 +428,9 @@ impl LendingContract {
     /// fallback oracle for this asset.
     ///
     /// # Errors
-    /// - `OracleError::OraclePaused` — oracle updates are paused.
-    /// - `OracleError::Unauthorized` — caller is not authorized.
-    /// - `OracleError::InvalidPrice` — price is zero or negative.
+    /// - `OracleError::OraclePaused` â€” oracle updates are paused.
+    /// - `OracleError::Unauthorized` â€” caller is not authorized.
+    /// - `OracleError::InvalidPrice` â€” price is zero or negative.
     pub fn update_price_feed(
         env: Env,
         caller: Address,
@@ -440,11 +440,11 @@ impl LendingContract {
         oracle::update_price_feed(&env, caller, asset, price)
     }
 
-    /// Get the current price for `asset` (primary → fallback → error).
+    /// Get the current price for `asset` (primary â†’ fallback â†’ error).
     ///
     /// # Errors
-    /// - `OracleError::StalePrice` — best available price is stale.
-    /// - `OracleError::NoPriceFeed` — no price has been submitted for this asset.
+    /// - `OracleError::StalePrice` â€” best available price is stale.
+    /// - `OracleError::NoPriceFeed` â€” no price has been submitted for this asset.
     pub fn get_price(env: Env, asset: Address) -> Result<i128, OracleError> {
         oracle::get_price(&env, &asset)
     }
@@ -469,7 +469,7 @@ impl LendingContract {
         get_close_factor_impl(&env)
     }
 
-    /// Sets the close factor in basis points (1–10000). Admin only.
+    /// Sets the close factor in basis points (1â€“10000). Admin only.
     pub fn set_close_factor_bps(env: Env, admin: Address, bps: i128) -> Result<(), BorrowError> {
         set_close_factor_impl(&env, &admin, bps)
     }
@@ -479,7 +479,7 @@ impl LendingContract {
         get_liquidation_incentive_bps_impl(&env)
     }
 
-    /// Sets the liquidation incentive in basis points (0–10000). Admin only.
+    /// Sets the liquidation incentive in basis points (0â€“10000). Admin only.
     pub fn set_liquidation_incentive_bps(
         env: Env,
         admin: Address,
@@ -623,9 +623,9 @@ impl LendingContract {
         receive_impl(env, token_asset, from, amount, payload)
     }
 
-    // ───────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Upgrade Management (Governance)
-    // ───────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     pub fn upgrade_init(
         env: Env,
@@ -677,9 +677,9 @@ impl LendingContract {
         upgrade::UpgradeManager::current_version(env)
     }
 
-    // ───────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Data Store Management
-    // ───────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     #[cfg(not(tarpaulin_include))]
     pub fn data_store_init(env: Env, admin: Address) {
@@ -738,9 +738,9 @@ impl LendingContract {
         data_store::DataStore::key_exists(env, key)
     }
 
-    // ═══════════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // Cross-Asset Operations
-    // ═══════════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     /// Initialize admin for cross-asset operations
     pub fn initialize_admin(env: Env, admin: Address) {
