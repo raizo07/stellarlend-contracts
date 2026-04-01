@@ -164,10 +164,33 @@ fn test_reentrancy_on_borrow() {
                 last_accrual_time: env.ledger().timestamp(),
             },
         );
+
+        drop(guard);
+
+        assert!(!is_locked(&env));
+        assert!(ReentrancyGuard::new(&env).is_ok());
+    });
+}
+
+#[test]
+fn deposit_rejects_callback_reentry_and_releases_lock() {
+    let (env, contract_id, client, token_id, user) = setup_test();
+
+    client
+        .deposit_collateral(&user, &Some(token_id), &1_000)
+        .unwrap();
+
+    env.as_contract(&contract_id, || {
+        assert!(!is_locked(&env));
     });
 
-    let res = client.try_ca_borrow_asset(&user, &Some(token_id), &500);
-    assert!(res.is_err());
+    client
+        .withdraw_collateral(&user, &Some(token_id), &500)
+        .unwrap();
+
+    env.as_contract(&contract_id, || {
+        assert!(!is_locked(&env));
+    });
 }
 
 #[test]

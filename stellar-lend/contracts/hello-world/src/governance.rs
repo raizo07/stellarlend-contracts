@@ -126,6 +126,7 @@ const MAX_TIMELOCK_DURATION: u64 = 30 * 24 * 60 * 60;
 /// # Security
 ///
 /// Only callable once. The caller (`admin`) must authorize the transaction.
+#[allow(clippy::too_many_arguments)]
 pub fn initialize(
     env: &Env,
     admin: Address,
@@ -165,7 +166,7 @@ pub fn initialize(
     if td > MAX_TIMELOCK_DURATION {
         return Err(GovernanceError::MathOverflow);
     }
-    if dvt < 0 || dvt > BASIS_POINTS_SCALE {
+    if !(0..=BASIS_POINTS_SCALE).contains(&dvt) {
         return Err(GovernanceError::InvalidThreshold);
     }
     if pt < 0 {
@@ -269,7 +270,7 @@ pub fn create_proposal(
 
     // ── validate custom threshold ──
     if let Some(vt) = voting_threshold {
-        if vt < 0 || vt > BASIS_POINTS_SCALE {
+        if !(0..=BASIS_POINTS_SCALE).contains(&vt) {
             return Err(GovernanceError::InvalidThreshold);
         }
     }
@@ -1626,12 +1627,12 @@ mod tests {
         client.gov_initialize(
             &admin,
             &token,
-            &Some(259_200),  // 3 days voting
-            &Some(86_400),   // 1 day execution delay
-            &Some(400),      // 4% quorum
-            &Some(100),      // 100 token threshold
-            &Some(604_800),  // 7 day timelock
-            &Some(5_000),    // 50% threshold
+            &Some(259_200), // 3 days voting
+            &Some(86_400),  // 1 day execution delay
+            &Some(400),     // 4% quorum
+            &Some(100),     // 100 token threshold
+            &Some(604_800), // 7 day timelock
+            &Some(5_000),   // 50% threshold
         );
         // Leak env to get 'static lifetime for tests
         let env: &'static Env = Box::leak(Box::new(env));
@@ -1665,16 +1666,8 @@ mod tests {
     #[test]
     fn test_initialize_double_init_fails() {
         let (env, admin, token, client) = setup();
-        let result = client.try_gov_initialize(
-            &admin,
-            &token,
-            &None,
-            &None,
-            &None,
-            &None,
-            &None,
-            &None,
-        );
+        let result =
+            client.try_gov_initialize(&admin, &token, &None, &None, &None, &None, &None, &None);
         assert!(result.is_err());
     }
 

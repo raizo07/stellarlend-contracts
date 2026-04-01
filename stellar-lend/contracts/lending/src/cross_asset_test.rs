@@ -59,6 +59,7 @@
 //! ```bash
 //! cargo test cross_asset_test --lib
 //! ```
+
 use super::*;
 use soroban_sdk::testutils::Address as _;
 use soroban_sdk::{Address, Env};
@@ -109,7 +110,7 @@ fn create_asset_params(
 fn setup_multi_asset_config(
     env: &Env,
     client: &LendingContractClient,
-    __admin: &Address,
+    _admin: &Address,
     asset_usdc: &Address,
     asset_eth: &Address,
 ) {
@@ -147,6 +148,8 @@ fn test_set_asset_params_multiple_assets() {
     let (client, _admin, _, _, asset_usdc, asset_eth) = setup_test(&env);
 
     setup_multi_asset_config(&env, &client, &_admin, &asset_usdc, &asset_eth);
+
+    setup_multi_asset_config(&env, &client, &admin, &asset_usdc, &asset_eth);
 
     // Test that multiple assets can be configured with different parameters
     // In a real implementation, we'd verify the stored parameters
