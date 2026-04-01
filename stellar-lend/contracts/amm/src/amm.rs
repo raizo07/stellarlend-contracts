@@ -643,6 +643,9 @@ pub fn auto_swap_for_collateral(
     target_token: Option<Address>,
     amount: i128,
 ) -> Result<i128, AmmError> {
+    // # Security: require explicit caller authorization before any state read.
+    user.require_auth();
+
     // Check if auto-swap is enabled
     let settings = get_amm_settings(env)?;
     if !settings.swap_enabled {
