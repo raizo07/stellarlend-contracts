@@ -250,7 +250,7 @@ fn test_repay_one_short_rejected() {
 
     let amount: i128 = 10_000;
     let fee: i128 = 100; // 1% of 10_000
-    // Repay principal + fee − 1
+                         // Repay principal + fee − 1
     client.flash_loan(
         &receiver,
         &asset,
