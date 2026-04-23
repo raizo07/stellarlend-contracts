@@ -89,6 +89,8 @@ mod withdraw_test;
 mod liquidation_boundary_test;
 #[cfg(test)]
 mod stress_test;
+#[cfg(test)]
+mod view_serialization_test;
 
 #[contract]
 pub struct LendingContract;
