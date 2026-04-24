@@ -22,11 +22,11 @@ use soroban_sdk::{testutils::Address as _, testutils::Ledger as _, Address, Env}
 fn default_config(env: &Env) -> AssetParams {
     AssetParams {
         asset: None,
-        collateral_factor: 7500,       // 75% LTV
-        liquidation_threshold: 8000,   // 80%
-        reserve_factor: 1000,          // 10%
+        collateral_factor: 7500,        // 75% LTV
+        liquidation_threshold: 8000,    // 80%
+        reserve_factor: 1000,           // 10%
         max_supply: 10_000_000_000_000, // 1M (7 decimals)
-        max_borrow: 5_000_000_000_000,   // 500K
+        max_borrow: 5_000_000_000_000,  // 500K
         can_collateralize: true,
         can_borrow: true,
         borrow_factor: 10000,
