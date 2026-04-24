@@ -6,7 +6,7 @@ use crate::oracle::OracleError;
 use crate::withdraw::WithdrawError;
 use soroban_sdk::{
     testutils::{Address as _, Events},
-    Address, Env, Symbol, TryFromVal, Vec,
+    vec, Address, Env, Symbol, TryFromVal,
 };
 
 #[test]
@@ -1157,7 +1157,7 @@ fn test_unauthorized_pause_bypass_attempts() {
     let admin = Address::generate(&env);
     let attacker = Address::generate(&env);
     let user = Address::generate(&env);
-    let asset = Address::generate(&env);
+    let _asset = Address::generate(&env);
     let guardian = Address::generate(&env);
 
     client.initialize(&admin, &1_000_000_000, &1000);
