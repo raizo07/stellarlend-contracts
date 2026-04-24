@@ -113,7 +113,9 @@ sequenceDiagram
 ## Documentation
 
 Comprehensive guides are available for specific components:
+- [Developer Glossary](../../../docs/glossary.md): Key protocol terms and numeric scales.
 - [Borrow & Interest](./borrow.md): Detailed logic for borrowing and collateral.
+
 - [Pause & Emergency](./pause.md): How the pause and emergency states work.
 - [Emergency Shutdown](./emergency_shutdown.md): Procedures for protocol shutdown.
 - [Flash Loans](./flash_loan.md): Technical details on flash loan execution.
