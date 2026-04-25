@@ -109,8 +109,9 @@ mod withdraw_test;
 #[cfg(test)]
 mod bad_debt_test;
 #[cfg(test)]
-mod liquidation_boundary_test;#[cfg(test)]
-mod multi_user_contention_test;
+mod liquidation_boundary_test;
+#[cfg(test)]
+mod liquidate_test;
 #[cfg(test)]
 mod multi_user_contention_test;
 #[cfg(test)]
