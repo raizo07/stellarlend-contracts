@@ -750,7 +750,8 @@ impl LendingContract {
 
     /// Initialize admin for cross-asset operations
     pub fn initialize_admin(env: Env, admin: Address) -> Result<(), CrossAssetError> {
-        cross_init_admin(&env, admin)
+        cross_init_admin(&env, admin);
+        Ok(())
     }
 
     /// Set parameters for a specific asset (admin only)
