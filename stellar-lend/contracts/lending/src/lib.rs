@@ -81,6 +81,8 @@ mod deposit_test;
 #[cfg(test)]
 mod emergency_shutdown_test;
 #[cfg(test)]
+mod emergency_lifecycle_conformance_test;
+#[cfg(test)]
 mod flash_adversarial_test;
 #[cfg(test)]
 mod flash_loan_test;
@@ -113,9 +115,13 @@ mod liquidation_boundary_test;
 #[cfg(test)]
 mod multi_user_contention_test;
 #[cfg(test)]
+mod multi_user_contention_test;
+#[cfg(test)]
 mod health_factor_monotonicity_test;
 #[cfg(test)]
 mod stress_test;
+#[cfg(test)]
+mod view_serialization_test;
 
 #[contract]
 pub struct LendingContract;
