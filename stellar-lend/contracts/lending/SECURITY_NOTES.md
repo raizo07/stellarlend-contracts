@@ -29,24 +29,10 @@ Protocol parameters strictly utilize `checked_add`, `checked_sub`, `checked_mul`
 - **Collateral ratio**: Post-withdraw collateral must satisfy the same minimum ratio as borrows, via shared `borrow::validate_collateral_ratio` (150% default, `MIN_COLLATERAL_RATIO_BPS`).
 - **Authorization**: Only the position owner can withdraw; `user.require_auth()` is enforced before state changes.
 
-## Borrow-Withdraw Invariant (Security Boundary)
+### Liquidation Boundary and Health Factor Scaling
+The protocol represents the Health Factor using a scalar where `10_000` equates to `1.0`. 
+To ensure determinism and avoid rounding ambiguity, the protocol strictly enforces the `<` threshold for liquidation eligibility. 
+* A position with a Health Factor `<= 9_999` **is eligible** for liquidation.
+* A position with a Health Factor `>= 10_000` **is completely immune** to liquidation. 
 
-The protocol enforces a critical invariant: **after every successful `withdraw`, the remaining collateral must continue to satisfy the minimum collateral ratio against the user's total debt** (including accrued interest). This prevents a class of exploits where a borrower attempts to withdraw collateral immediately after borrowing, or after a partial repay, in order to leave their position undercollateralized.
-
-### Prevented exploit classes
-
-| Exploit attempt | Defence mechanism |
-|---|---|
-| Borrow then immediately withdraw all collateral | `validate_collateral_ratio_after_withdraw` rejects because remaining collateral < required |
-| Borrow at exactly 150 % boundary, then withdraw 1 unit | Same ratio check; 1 unit below boundary fails |
-| Rounding manipulation with small amounts | Integer math is exact; no rounding down in borrow's favour |
-| Interest accrual timing attack (wait, then withdraw before interest "counts") | Interest is calculated fresh on every withdraw call using current timestamp |
-| Partial repay, then over-withdraw | Repay reduces debt; withdraw re-evaluates required collateral from current debt |
-| View inconsistency (health factor says liquidatable, but withdraw succeeds) | Withdraw uses the **borrow** ratio (150 %), not the liquidation threshold (80 %), so it is stricter |
-| Rapid borrow-withdraw cycles to drain collateral | Each withdraw independently re-validates the ratio; cumulative debt is tracked |
-| Deposit, borrow, withdraw original deposit | Borrow collateral and deposit collateral share the same balance; total is checked |
-| Oracle price drop makes HF < 1.0 | Withdraw still enforces 150 % raw collateral ratio regardless of oracle price |
-
-### Implementation note
-
-`withdraw::validate_collateral_ratio_after_withdraw` delegates directly to `borrow::validate_collateral_ratio`. Using the **same function** for both borrow-time and withdraw-time validation guarantees that the two paths can never drift out of agreement. Any future change to the collateral ratio rule automatically applies to both entry points.
+There are no edge cases where a `10_000` Health Factor allows for liquidation. All price oracle rounding uses integer truncations designed to safely error on the side of protecting the borrower from false-positive liquidations.

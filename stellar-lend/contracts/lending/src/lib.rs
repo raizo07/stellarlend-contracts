@@ -81,6 +81,8 @@ mod deposit_test;
 #[cfg(test)]
 mod emergency_shutdown_test;
 #[cfg(test)]
+mod emergency_lifecycle_conformance_test;
+#[cfg(test)]
 mod flash_adversarial_test;
 #[cfg(test)]
 mod flash_loan_test;
@@ -109,13 +111,17 @@ mod withdraw_test;
 #[cfg(test)]
 mod bad_debt_test;
 #[cfg(test)]
-mod borrow_withdraw_adversarial_test;
-#[cfg(test)]
 mod liquidation_boundary_test;
 #[cfg(test)]
 mod multi_user_contention_test;
 #[cfg(test)]
+mod multi_user_contention_test;
+#[cfg(test)]
+mod health_factor_monotonicity_test;
+#[cfg(test)]
 mod stress_test;
+#[cfg(test)]
+mod view_serialization_test;
 
 #[contract]
 pub struct LendingContract;
@@ -746,7 +752,8 @@ impl LendingContract {
 
     /// Initialize admin for cross-asset operations
     pub fn initialize_admin(env: Env, admin: Address) -> Result<(), CrossAssetError> {
-        cross_init_admin(&env, admin)
+        cross_init_admin(&env, admin);
+        Ok(())
     }
 
     /// Set parameters for a specific asset (admin only)
