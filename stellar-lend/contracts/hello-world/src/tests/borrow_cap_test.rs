@@ -118,17 +118,12 @@ fn test_borrow_cap_update_via_admin() {
         &token_borrow_config(&env, &usdc, 1_0000000, 500),
     );
 
-    // User 1 deposits XLM collateral and borrows 500 USDC (hits cap)
-    client.cross_asset_deposit(&user1, &None, &5000);
-    client.cross_asset_borrow(&user1, &Some(usdc.clone()), &500);
+    client.cross_asset_deposit(&user, &None, &5000);
+    client.cross_asset_borrow(&user, &Some(usdc.clone()), &500);
 
-    // User 2 tries to borrow 1 USDC, should fail
-    client.cross_asset_deposit(&user2, &None, &5000);
-    assert!(client
-        .try_cross_asset_borrow(&user2, &Some(usdc.clone()), &1)
-        .is_err());
+    let blocked = client.try_cross_asset_borrow(&user, &Some(usdc.clone()), &1);
+    assert!(blocked.is_err(), "borrow should fail when cap is reached");
 
-    // Admin raises cap to 1 000
     client.update_asset_config(
         &admin,
         &Some(usdc.clone()),
@@ -138,12 +133,16 @@ fn test_borrow_cap_update_via_admin() {
         &Some(1000),
         &None,
         &None,
+        &None,
     );
 
-    // Now User 2 can borrow
-    assert!(client
-        .try_cross_asset_borrow(&user2, &Some(usdc.clone()), &100)
-        .is_ok());
+    let unblocked = client.try_cross_asset_borrow(&user, &Some(usdc.clone()), &200);
+    assert!(
+        unblocked.is_ok(),
+        "borrow should succeed after admin raises cap"
+    );
+
+    assert_eq!(client.get_total_borrow_for(&Some(usdc)), 700);
 }
 
 // ============================================================================
