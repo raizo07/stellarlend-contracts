@@ -6,7 +6,7 @@ use crate::oracle::OracleError;
 use crate::withdraw::WithdrawError;
 use soroban_sdk::{
     testutils::{Address as _, Events},
-    Address, Env, Symbol, TryFromVal, Vec,
+    vec, Address, Env, Symbol, TryFromVal,
 };
 
 #[test]
@@ -171,7 +171,7 @@ fn test_pause_events() {
     client.set_pause(&admin, &PauseType::Borrow, &true);
 
     let events = env.events().all();
-    let last_event = events.last().unwrap();
+    let last_event = events.get(events.len() - 1).unwrap();
 
     assert_eq!(last_event.0, contract_id);
     let topic: Symbol = Symbol::try_from_val(&env, &last_event.1.get(0).unwrap()).unwrap();
@@ -479,7 +479,7 @@ fn test_set_deposit_paused_emits_event() {
     client.set_deposit_paused(&true);
 
     let events = env.events().all();
-    let last = events.last().unwrap();
+    let last = events.get(events.len() - 1).unwrap();
     let topic: Symbol = Symbol::try_from_val(&env, &last.1.get(0).unwrap()).unwrap();
     assert_eq!(topic, Symbol::new(&env, "pause_event"));
 
@@ -500,7 +500,7 @@ fn test_set_withdraw_paused_emits_event() {
     client.set_withdraw_paused(&true);
 
     let events = env.events().all();
-    let last = events.last().unwrap();
+    let last = events.get(events.len() - 1).unwrap();
     let topic: Symbol = Symbol::try_from_val(&env, &last.1.get(0).unwrap()).unwrap();
     assert_eq!(topic, Symbol::new(&env, "pause_event"));
 
@@ -656,7 +656,7 @@ fn test_set_guardian_emits_event() {
     client.set_guardian(&admin, &guardian);
 
     let events = env.events().all();
-    let last = events.last().unwrap();
+    let last = events.get(events.len() - 1).unwrap();
     let topic: Symbol = Symbol::try_from_val(&env, &last.1.get(0).unwrap()).unwrap();
     assert_eq!(topic, Symbol::new(&env, "guardian_set_event"));
 }
@@ -784,7 +784,7 @@ fn test_emergency_shutdown_emits_event() {
     client.emergency_shutdown(&admin);
 
     let events = env.events().all();
-    let last = events.last().unwrap();
+    let last = events.get(events.len() - 1).unwrap();
     let topic: Symbol = Symbol::try_from_val(&env, &last.1.get(0).unwrap()).unwrap();
     assert_eq!(topic, Symbol::new(&env, "emergency_state_event"));
 }
@@ -806,7 +806,7 @@ fn test_full_emergency_lifecycle_events() {
     client.emergency_shutdown(&admin);
     {
         let events = env.events().all();
-        let last = events.last().unwrap();
+        let last = events.get(events.len() - 1).unwrap();
         let topic: Symbol = Symbol::try_from_val(&env, &last.1.get(0).unwrap()).unwrap();
         assert_eq!(topic, Symbol::new(&env, "emergency_state_event"));
     }
@@ -815,7 +815,7 @@ fn test_full_emergency_lifecycle_events() {
     client.start_recovery(&admin);
     {
         let events = env.events().all();
-        let last = events.last().unwrap();
+        let last = events.get(events.len() - 1).unwrap();
         let topic: Symbol = Symbol::try_from_val(&env, &last.1.get(0).unwrap()).unwrap();
         assert_eq!(topic, Symbol::new(&env, "emergency_state_event"));
     }
@@ -824,7 +824,7 @@ fn test_full_emergency_lifecycle_events() {
     client.complete_recovery(&admin);
     {
         let events = env.events().all();
-        let last = events.last().unwrap();
+        let last = events.get(events.len() - 1).unwrap();
         let topic: Symbol = Symbol::try_from_val(&env, &last.1.get(0).unwrap()).unwrap();
         assert_eq!(topic, Symbol::new(&env, "emergency_state_event"));
     }
@@ -1092,7 +1092,7 @@ fn test_oracle_pause_independence() {
 
     // Pause all core operations but not oracle
     client.set_pause(&admin, &PauseType::All, &true);
-    
+
     // Oracle should still work if not paused
     client.update_price_feed(&oracle, &asset, &100_000);
 
@@ -1157,7 +1157,7 @@ fn test_unauthorized_pause_bypass_attempts() {
     let admin = Address::generate(&env);
     let attacker = Address::generate(&env);
     let user = Address::generate(&env);
-    let asset = Address::generate(&env);
+    let _asset = Address::generate(&env);
     let guardian = Address::generate(&env);
 
     client.initialize(&admin, &1_000_000_000, &1000);
