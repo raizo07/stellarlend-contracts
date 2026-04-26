@@ -36,7 +36,7 @@ pub enum BorrowDataKey {
     BorrowUserCollateral(Address),
     BorrowTotalDebt,
     BorrowDebtCeiling,
-    BorrowMinAmount,
+    BorrowMinAmountPerAsset(Address),
     OracleAddress,
     LiquidationThresholdBps,
     CloseFactor,
@@ -130,7 +130,7 @@ pub fn borrow(
     }
 
     // Instance storage read (Cheap)
-    let min_borrow = get_min_borrow_amount(env);
+    let min_borrow = get_min_borrow_amount(env, &asset);
     if amount < min_borrow {
         return Err(BorrowError::BelowMinimumBorrow);
     }
@@ -401,7 +401,7 @@ pub fn initialize_borrow_settings(
         .set(&BorrowDataKey::BorrowDebtCeiling, &debt_ceiling);
     env.storage()
         .instance()
-        .set(&BorrowDataKey::BorrowMinAmount, &min_borrow_amount);
+        .set(&BorrowDataKey::BorrowMinAmountPerAsset(asset), &min_borrow_amount);
     Ok(())
 }
 
